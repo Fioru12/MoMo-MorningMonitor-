@@ -1,3 +1,21 @@
+
+// ==================== WebSocket Client ====================
+let ws = null;
+function connectWebSocket() {
+    ws = new WebSocket('ws://' + window.location.hostname + ':3002');
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'system') {
+                updateSystemWidget(data.data);
+            }
+        } catch(e) {}
+    };
+    ws.onclose = () => setTimeout(connectWebSocket, 5000);
+    ws.onerror = () => setTimeout(connectWebSocket, 5000);
+}
+setTimeout(connectWebSocket, 1000);
+
 // ==================== LANDING PAGE ====================
 const landingOverlay = document.getElementById('landingOverlay');
 const landingBtn = document.getElementById('landingBtn');
@@ -1180,6 +1198,67 @@ function saveWidgetOrder() {
 }
 
 function loadWidgetOrder() {
+
+// ==================== Charts ====================
+let cpuChart = null;
+let ramChart = null;
+
+function initCharts() {
+    const ctx1 = document.getElementById('cpuChart');
+    const ctx2 = document.getElementById('ramChart');
+    if (!ctx1 || !ctx2) return;
+    
+    cpuChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+                label: 'CPU %',
+                data: Array(20).fill(0),
+                borderColor: '#0071e3',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: { duration: 300 },
+            scales: { y: { min: 0, max: 100 } }
+        }
+    });
+    
+    ramChart = new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+                label: 'RAM %',
+                data: Array(20).fill(0),
+                borderColor: '#10b981',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: { duration: 300 },
+            scales: { y: { min: 0, max: 100 } }
+        }
+    });
+}
+
+function updateCharts(cpu, ram) {
+    if (!cpuChart || !ramChart) return;
+    cpuChart.data.datasets[0].data.push(cpu);
+    cpuChart.data.datasets[0].data.shift();
+    cpuChart.update();
+    
+    ramChart.data.datasets[0].data.push(ram);
+    ramChart.data.datasets[0].data.shift();
+    ramChart.update();
+}
+
+
   const saved = localStorage.getItem('devdash-widget-order');
   if (!saved) return;
   

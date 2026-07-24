@@ -21,6 +21,26 @@ const limiter = rateLimit({
   message: 'Troppe richieste, riprova più tardi'
 });
 app.use(limiter);
+// ==================== WebSocket ====================
+const { WebSocketServer } = require('ws');
+const wss = new WebSocketServer({ port: 3002 });
+const clients = new Set();
+wss.on('connection', (ws) => {
+    clients.add(ws);
+    ws.on('close', () => clients.delete(ws));
+});
+function broadcast(data) {
+    for (const client of clients) {
+        if (client.readyState === 1) client.send(JSON.stringify(data));
+    }
+}
+setInterval(async () => {
+    try {
+        const r = await fetch('http://localhost:'+PORT+'/api/system');
+        broadcast({ type: 'system', data: await r.json() });
+    } catch(e) {}
+}, 5000);
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== Health Check ====================
@@ -557,6 +577,32 @@ app.get('*', (req, res) => {
 });
 
 // ==================== Start ====================
+
+// ==================== Export CSV ====================
+app.get('/api/export/:type', async (req, res) => {
+    const type = req.params.type;
+    try {
+        if (type === 'todos' || type === 'notes') {
+            const file = path.join(__dirname, 'data', type + '.json');
+            const items = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const csv = items.map(i => Object.values(i).join(',')).join('\n');
+            res.setHeader('Content-Type', 'text/csv');
+            res.attachment(type + '.csv');
+            res.send(csv);
+        } else if (type === 'system') {
+            const r = await fetch('http://localhost:'+PORT+'/api/system');
+            const s = await r.json();
+            const csv = 'metric,value\n'+Object.entries(s).map(e=>e.join(',')).join('\n');
+            res.setHeader('Content-Type', 'text/csv');
+            res.attachment('system.csv');
+            res.send(csv);
+        }
+    } catch(e) { res.status(500).json({error: e.message}); }
+});
+app.get('/api/ws-status', (req, res) => {
+    res.json({ connected: clients.size });
+});
+
 app.listen(PORT, () => {
   console.log(`✨ DevMonitor avviato su porta ${PORT}`);
   console.log(`🌐 Apri http://localhost:${PORT} nel browser`);
