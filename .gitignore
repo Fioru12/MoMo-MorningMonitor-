@@ -1,6 +1,28 @@
+# Node
 node_modules/
-data/
+npm-debug.log*
+package-lock.json
+
+# Env
 .env
-data/todos.json
-*.log
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Data (contains local state)
+data/
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/

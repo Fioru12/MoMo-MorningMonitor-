@@ -15,7 +15,7 @@
 **A modern, responsive personal dashboard for developers and sysadmins**  
 Real-time system monitoring, weather forecasts, tech news, and task management in one place.
 
-[🚀 Live Demo](http://95.246.185.101:3002) • [✨ Features](#-features) • [📦 Installation](#-installation) • [🛠️ Tech Stack](#️-tech-stack) • [📸 Screenshots](#-screenshots)
+[🚀 Live Demo](http://YOUR_SERVER_IP:3002) • [✨ Features](#-features) • [📦 Installation](#-installation) • [🛠️ Tech Stack](#️-tech-stack) • [📸 Screenshots](#-screenshots)
 
 </div>
 
