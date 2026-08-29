@@ -1,4 +1,11 @@
 
+// ==================== SERVICE WORKER ====================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 // ==================== WebSocket Client ====================
 let ws = null;
 function connectWebSocket() {

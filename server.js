@@ -219,8 +219,8 @@ async function getWeatherData(city = '') {
   if (cached) return cached;
 
   const url = normalizedCity
-    ? `${WEATHER_API}/${encodeURIComponent(normalizedCity)}?format=j1`
-    : `${WEATHER_API}?format=j1`;
+    ? `${WEATHER_API}/${encodeURIComponent(normalizedCity)}?format=j1&lang=it`
+    : `${WEATHER_API}?format=j1&lang=it`;
 
   const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
   const data = await response.json();
@@ -229,6 +229,8 @@ async function getWeatherData(city = '') {
     return { error: 'Città non trovata' };
   }
 
+  const desc = (entry) => entry?.lang_it?.[0]?.value || entry?.weatherDesc?.[0]?.value || '';
+
   const current = data.current_condition?.[0];
   const location = data.nearest_area?.[0]?.areaName?.[0]?.value || 'Sconosciuta';
 
@@ -236,7 +238,7 @@ async function getWeatherData(city = '') {
     date: day.date,
     tempMax: day.maxtempC,
     tempMin: day.mintempC,
-    desc: day.hourly?.[0]?.weatherDesc?.[0]?.value || '',
+    desc: desc(day.hourly?.[0]),
     icon: day.hourly?.[0]?.weatherIconUrl?.[0]?.value || '',
   }));
 
@@ -245,7 +247,7 @@ async function getWeatherData(city = '') {
     time: h.time.padStart(4, '0'),
     temp: h.tempC,
     chanceRain: h.chanceofrain || '0',
-    desc: h.weatherDesc?.[0]?.value || '',
+    desc: desc(h),
   }));
 
   const result = {
@@ -254,7 +256,7 @@ async function getWeatherData(city = '') {
     feelsLike: current?.FeelsLikeC || 'N/A',
     humidity: current?.humidity || 'N/A',
     windSpeed: current?.windspeedKmph || 'N/A',
-    desc: current?.weatherDesc?.[0]?.value || 'N/A',
+    desc: desc(current) || 'N/A',
     icon: current?.weatherIconUrl?.[0]?.value || '',
     sunrise: astronomy.sunrise || '06:42',
     sunset: astronomy.sunset || '20:15',
