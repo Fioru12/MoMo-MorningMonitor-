@@ -1,21 +1,21 @@
 {
-  "name": "DevMonitor",
-  "short_name": "DevMonitor",
-  "description": "La tua dashboard personale con meteo, orologi, citazioni e monitor sistema",
+  "name": "MoMo — Morning Monitor",
+  "short_name": "MoMo",
+  "description": "Il tuo monitor mattutino: meteo, focus, briefing e sistema",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f1a",
-  "theme_color": "#6c63ff",
+  "background_color": "#05070a",
+  "theme_color": "#0071e3",
   "icons": [
     {
-      "src": "/icon-192.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }

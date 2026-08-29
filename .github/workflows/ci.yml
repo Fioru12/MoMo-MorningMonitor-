@@ -36,7 +36,7 @@ jobs:
       run: |
         npm start &
         sleep 3
-        curl -f http://localhost:3001/api/health || exit 1
+        curl -f http://localhost:3100/api/health || exit 1
       env:
         NODE_ENV: test
 
@@ -55,7 +55,7 @@ jobs:
       with:
         context: .
         push: false
-        tags: devdash:latest
+        tags: momo:latest
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
 

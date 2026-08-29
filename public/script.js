@@ -2,7 +2,8 @@
 // ==================== WebSocket Client ====================
 let ws = null;
 function connectWebSocket() {
-    ws = new WebSocket('ws://' + window.location.hostname + ':3002');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}`);
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
@@ -23,7 +24,7 @@ const landingBtn = document.getElementById('landingBtn');
 function hideLanding() {
   if (landingOverlay) {
     landingOverlay.classList.add('hidden');
-    localStorage.setItem('devdash-landing-seen', 'true');
+    localStorage.setItem('momo-landing-seen', 'true');
   }
 }
 
@@ -41,14 +42,14 @@ document.addEventListener('keydown', (e) => {
 const themeToggle = document.getElementById('themeToggle');
 
 function getPreferredTheme() {
-  const saved = localStorage.getItem('devdash-theme');
+  const saved = localStorage.getItem('momo-theme');
   if (saved) return saved;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('devdash-theme', theme);
+  localStorage.setItem('momo-theme', theme);
 }
 
 setTheme(getPreferredTheme());
@@ -78,6 +79,13 @@ const colorPopup = document.getElementById('colorPopup');
 const colorPopupClose = document.getElementById('colorPopupClose');
 const colorOptions = document.querySelectorAll('.color-opt');
 
+let accentRGB = '0, 113, 227';
+function cacheAccent() {
+  accentRGB = getComputedStyle(document.documentElement)
+    .getPropertyValue('--accent-rgb')
+    .trim() || '0, 113, 227';
+}
+
 function getAccentRGB(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -91,14 +99,15 @@ function setAccentColor(hex) {
   root.style.setProperty('--accent-rgb', getAccentRGB(hex));
   root.style.setProperty('--accent-light', hex);
   root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${hex}, ${hex})`);
-  localStorage.setItem('devdash-accent', hex);
+  localStorage.setItem('momo-accent', hex);
+  cacheAccent();
 
   colorOptions.forEach(opt => opt.classList.remove('active'));
   const activeOpt = document.querySelector(`.color-opt[data-color="${hex}"]`);
   if (activeOpt) activeOpt.classList.add('active');
 }
 
-const savedAccent = localStorage.getItem('devdash-accent');
+const savedAccent = localStorage.getItem('momo-accent');
 if (savedAccent) setAccentColor(savedAccent);
 
 colorPickerBtn.addEventListener('click', (e) => {
@@ -122,14 +131,6 @@ colorOptions.forEach(opt => {
     setAccentColor(color);
     playSound('theme');
   });
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
-  if (e.key.toLowerCase() === 'c') {
-    e.preventDefault();
-    colorPopup.classList.toggle('visible');
-  }
 });
 
 // ==================== SOUND EFFECTS ====================
@@ -188,6 +189,8 @@ const ctx = canvas.getContext('2d');
 let particles = [];
 const PARTICLE_COUNT = window.innerWidth < 768 ? 10 : 30;
 
+cacheAccent();
+
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -221,13 +224,9 @@ class Particle {
   }
 
   draw() {
-    const accentColor = getComputedStyle(document.documentElement)
-      .getPropertyValue('--accent-rgb')
-      .trim() || '0, 113, 227';
-
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${accentColor}, ${this.opacity})`;
+    ctx.fillStyle = `rgba(${accentRGB}, ${this.opacity})`;
     ctx.fill();
   }
 }
@@ -237,10 +236,6 @@ for (let i = 0; i < PARTICLE_COUNT; i++) {
 }
 
 function drawConnections() {
-  const accentColor = getComputedStyle(document.documentElement)
-    .getPropertyValue('--accent-rgb')
-    .trim() || '0, 113, 227';
-
   for (let i = 0; i < particles.length; i++) {
     for (let j = i + 1; j < particles.length; j++) {
       const dx = particles[i].x - particles[j].x;
@@ -252,7 +247,7 @@ function drawConnections() {
         ctx.beginPath();
         ctx.moveTo(particles[i].x, particles[i].y);
         ctx.lineTo(particles[j].x, particles[j].y);
-        ctx.strokeStyle = `rgba(${accentColor}, ${opacity})`;
+        ctx.strokeStyle = `rgba(${accentRGB}, ${opacity})`;
         ctx.lineWidth = 0.5;
         ctx.stroke();
       }
@@ -260,6 +255,7 @@ function drawConnections() {
   }
 }
 
+let rafId = null;
 function animateParticles() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -269,10 +265,24 @@ function animateParticles() {
   });
 
   drawConnections();
-  requestAnimationFrame(animateParticles);
+  rafId = requestAnimationFrame(animateParticles);
 }
 
-animateParticles();
+function startParticles() {
+  if (rafId) return;
+  animateParticles();
+}
+function stopParticles() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopParticles();
+  else startParticles();
+});
+
+startParticles();
 
 // ==================== HEADER CLOCK ====================
 const clockSelect = document.getElementById('clockSelect');
@@ -331,6 +341,10 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function emptyState(icon, text) {
+  return `<div class="widget-empty"><span class="widget-empty-icon">${icon}</span>${escapeHtml(text)}</div>`;
+}
+
 // ==================== ANIMATED COUNTER ====================
 function animateCounter(element, targetValue, suffix = '') {
   const target = parseInt(targetValue);
@@ -358,60 +372,10 @@ function animateCounter(element, targetValue, suffix = '') {
   requestAnimationFrame(update);
 }
 
-// ==================== SPARKLINE ====================
+// ==================== SPARKLINE HISTORY ====================
 const cpuHistory = [];
 const ramHistory = [];
 const MAX_HISTORY = 60;
-
-function drawSparkline(canvasId, data, color) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-
-  const c = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  const padding = 2;
-
-  c.clearRect(0, 0, w, h);
-
-  if (data.length < 2) return;
-
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
-
-  // Draw fill
-  c.beginPath();
-  c.moveTo(0, h - padding);
-  data.forEach((val, i) => {
-    const x = (i / (data.length - 1)) * (w - padding * 2) + padding;
-    const y = (h - padding) - ((val - min) / range) * (h - padding * 2);
-    c.lineTo(x, y);
-  });
-  c.lineTo(w - padding, h - padding);
-  c.closePath();
-
-  const gradient = c.createLinearGradient(0, 0, 0, h);
-  gradient.addColorStop(0, color.replace('0.', '0.15'));
-  gradient.addColorStop(1, color.replace('0.', '0.01'));
-  c.fillStyle = gradient;
-  c.fill();
-
-  // Draw line
-  c.beginPath();
-  data.forEach((val, i) => {
-    const x = (i / (data.length - 1)) * (w - padding * 2) + padding;
-    const y = (h - padding) - ((val - min) / range) * (h - padding * 2);
-    if (i === 0) c.moveTo(x, y);
-    else c.lineTo(x, y);
-  });
-  c.strokeStyle = color;
-  c.lineWidth = 1.5;
-  c.stroke();
-}
 
 // ==================== NEWS ====================
 let newsData = [];
@@ -423,7 +387,7 @@ async function loadNews() {
     const list = document.getElementById('newsList');
     
     if (stories.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Nessuna notizia disponibile</div>';
+      list.innerHTML = emptyState('📰', 'Nessuna notizia disponibile');
       return;
     }
 
@@ -450,7 +414,7 @@ async function loadNews() {
     // Update ticker
     updateTicker(stories);
   } catch {
-    document.getElementById('newsList').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento notizie</div>';
+    document.getElementById('newsList').innerHTML = emptyState('⚠️', 'Errore caricamento notizie');
   }
 }
 
@@ -498,6 +462,39 @@ async function loadWeather() {
     document.getElementById('weatherHumidity').textContent = `${data.humidity}%`;
     document.getElementById('weatherWind').textContent = `${data.windSpeed} km/h`;
     document.getElementById('weatherCity').textContent = `📍 ${data.city}`;
+    // hourly 24h + sunrise
+    const sunEl = document.getElementById('greetingSun');
+    if (sunEl && data.sunrise) {
+      sunEl.textContent = `🌅 ${data.sunrise} • 🌇 ${data.sunset}`;
+      localStorage.setItem('momo-sunrise', data.sunrise);
+      localStorage.setItem('momo-sunset', data.sunset);
+    }
+    if (data.hourly && data.hourly.length) {
+      let hourlyEl = document.getElementById('hourlyRow');
+      if (!hourlyEl) {
+        const wBody = document.getElementById('weatherBody');
+        hourlyEl = document.createElement('div');
+        hourlyEl.id = 'hourlyRow';
+        hourlyEl.className = 'hourly-row';
+        wBody.appendChild(hourlyEl);
+      }
+      hourlyEl.innerHTML = data.hourly.map(h => `<div class="hourly-item"><div class="hourly-time">${h.time.slice(0,2)}:${h.time.slice(2)}</div><div class="hourly-temp">${h.temp}°</div><div style="font-size:0.6rem;color:var(--text-tertiary)">${h.chanceRain}%</div></div>`).join('');
+      // hourly mini chart
+      try {
+        const ctx = document.getElementById('hourlyChart');
+        if (ctx && data.hourly.length > 2) {
+          if (window.hourlyChart) window.hourlyChart.destroy();
+          window.hourlyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.hourly.map(h=> h.time.slice(0,2)+':'+h.time.slice(2)),
+              datasets: [{ data: data.hourly.map(h=> parseInt(h.temp)), borderColor: '#0071e3', backgroundColor: 'rgba(0,113,227,0.12)', tension: 0.4, fill: true, pointRadius: 0, borderWidth: 2 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}} }
+          });
+        }
+      } catch {}
+    }
 
     // Render forecast 3 giorni
     const forecastRow = document.getElementById('forecastRow');
@@ -547,23 +544,26 @@ async function updateHeaderWeather() {
 updateHeaderWeather();
 setInterval(updateHeaderWeather, 300000); // 5 min
 
-// ==================== WIDGET: CLOCK ====================
-async function loadClocks() {
-  try {
-    const times = await fetchAPI('/api/time');
-    const list = document.getElementById('clockList');
-    list.innerHTML = times.map(t => `
-      <div class="clock-item">
-        <span class="clock-label">${t.label}</span>
-        <div>
-          <span class="clock-time">${t.time}</span>
-          <span class="clock-date">${t.date}</span>
-        </div>
-      </div>
-    `).join('');
-  } catch {
-    document.getElementById('clockList').innerHTML = '<div class="clock-item">Errore caricamento orari</div>';
-  }
+function updateSystemWidget(data) {
+  const cpuPct = Math.min(data.cpu.usage, 100);
+  const ramPct = Math.min(data.memory.percent, 100);
+
+  animateCounter(document.getElementById('cpuValue'), cpuPct, '%');
+  animateCounter(document.getElementById('ramValue'), ramPct, '%');
+
+  document.getElementById('cpuBar').style.width = `${cpuPct}%`;
+  document.getElementById('ramBar').style.width = `${ramPct}%`;
+  document.getElementById('sysHostname').textContent = data.hostname;
+  document.getElementById('sysPlatform').textContent = `${data.platform} (${data.arch})`;
+  document.getElementById('sysUptime').textContent = data.uptime;
+  document.getElementById('sysLoad').textContent = data.loadAvg.join(' / ');
+
+  cpuHistory.push(cpuPct);
+  ramHistory.push(ramPct);
+  if (cpuHistory.length > MAX_HISTORY) cpuHistory.shift();
+  if (ramHistory.length > MAX_HISTORY) ramHistory.shift();
+
+  updateSystemSparkline(cpuPct, ramPct);
 }
 
 // ==================== WIDGET: SYSTEM ====================
@@ -587,13 +587,6 @@ async function loadSystem() {
     ramHistory.push(ramPct);
     if (cpuHistory.length > MAX_HISTORY) cpuHistory.shift();
     if (ramHistory.length > MAX_HISTORY) ramHistory.shift();
-
-    const accent = getComputedStyle(document.documentElement)
-      .getPropertyValue('--accent').trim() || '#0071e3';
-    const success = '#34c759';
-
-    drawSparkline('sparklineCpu', cpuHistory, accent);
-    drawSparkline('sparklineRam', ramHistory, success);
   } catch {
     // silently fail
   }
@@ -604,8 +597,12 @@ async function loadTodos() {
   try {
     const todos = await fetchAPI('/api/todos');
     const list = document.getElementById('todoList');
+    const countEl = document.getElementById('todoCount');
+    const pendingCount = todos.filter(t => !t.done).length;
+    if (countEl) countEl.textContent = todos.length ? `(${pendingCount}/${todos.length})` : '';
+
     if (todos.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 16px; font-size: 0.85rem; font-weight: 500;">Nessun task. Aggiungine uno! ✨</div>';
+      list.innerHTML = emptyState('✅', 'Nessun task. Aggiungine uno!');
       return;
     }
     list.innerHTML = todos.map(t => `
@@ -677,7 +674,6 @@ document.querySelectorAll('.widget-refresh').forEach(btn => {
 
     switch (widget) {
       case 'weather': loadWeather(); break;
-      case 'clock': loadClocks(); break;
       case 'system': loadSystem(); break;
       case 'network': loadNetwork(); break;
       case 'storage': loadStorage(); break;
@@ -700,9 +696,9 @@ function showShortcutHint() {
   }, 4000);
 }
 
-if (!localStorage.getItem('devdash-hint-seen')) {
+if (!localStorage.getItem('momo-hint-seen')) {
   setTimeout(showShortcutHint, 2000);
-  localStorage.setItem('devdash-hint-seen', 'true');
+  localStorage.setItem('momo-hint-seen', 'true');
 }
 
 document.addEventListener('keydown', (e) => {
@@ -716,7 +712,6 @@ document.addEventListener('keydown', (e) => {
     case 'r':
       e.preventDefault();
       loadWeather();
-      loadClocks();
       loadSystem();
       loadNotes();
       loadBookmarks();
@@ -753,13 +748,10 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ==================== THEME CHANGE SPARKLINE REPAINT ====================
+// ==================== THEME CHANGE REPAINT ====================
 const observer = new MutationObserver(() => {
-  if (cpuHistory.length > 0) {
-    const accent = getComputedStyle(document.documentElement)
-      .getPropertyValue('--accent').trim() || '#0071e3';
-    drawSparkline('sparklineCpu', cpuHistory, accent);
-  }
+  cacheAccent();
+  if (systemSparklineChart) systemSparklineChart.update('none');
 });
 observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -768,8 +760,10 @@ async function loadNotes() {
   try {
     const notes = await fetchAPI('/api/notes');
     const list = document.getElementById('notesList');
+    const countEl = document.getElementById('notesCount');
+    if (countEl) countEl.textContent = notes.length ? `(${notes.length})` : '';
     if (notes.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 16px; font-size: 0.85rem; font-weight: 500;">Nessuna nota. Aggiungine una! ✨</div>';
+      list.innerHTML = emptyState('📝', 'Nessuna nota. Aggiungine una!');
       return;
     }
     list.innerHTML = notes.map(n => `
@@ -821,13 +815,18 @@ async function loadBookmarks() {
   try {
     const bookmarks = await fetchAPI('/api/bookmarks');
     const list = document.getElementById('bookmarksList');
+    const countEl = document.getElementById('bookmarksCount');
+    if (countEl) countEl.textContent = bookmarks.length ? `(${bookmarks.length})` : '';
     if (bookmarks.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 16px; font-size: 0.85rem; font-weight: 500;">Nessun bookmark. Aggiungine uno! 🔖</div>';
+      list.innerHTML = emptyState('🔖', 'Nessun bookmark. Aggiungine uno!');
       return;
     }
     list.innerHTML = bookmarks.map(b => `
       <li class="bookmark-item" data-id="${b.id}">
-        <a href="${b.url}" target="_blank" class="bookmark-link">${escapeHtml(b.name)}</a>
+        <a href="${b.url}" target="_blank" class="bookmark-link">
+          <img src="${getFaviconUrl(b.url)}" alt="" class="bookmark-favicon" width="16" height="16" onerror="this.style.display='none'" />
+          ${escapeHtml(b.name)}
+        </a>
         <button class="bookmark-delete" aria-label="Elimina">✕</button>
       </li>
     `).join('');
@@ -855,20 +854,33 @@ document.getElementById('bookmarksForm').addEventListener('submit', async (e) =>
   const urlInput = document.getElementById('bookmarkUrl');
   const name = nameInput.value.trim();
   const url = urlInput.value.trim();
-  if (!name || !url) return;
+  if (!name || !url) {
+    showToast('Compila nome e URL');
+    return;
+  }
+
+  let normalized = url;
+  if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+  try {
+    new URL(normalized);
+  } catch {
+    showToast('URL non valido');
+    return;
+  }
 
   try {
     await fetch('/api/bookmarks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url }),
+      body: JSON.stringify({ name, url: normalized }),
     });
     nameInput.value = '';
     urlInput.value = '';
     playSound('todo');
+    showToast('Bookmark aggiunto ✓');
     loadBookmarks();
   } catch {
-    // silently fail
+    showToast('Errore aggiunta bookmark');
   }
 });
 
@@ -892,14 +904,24 @@ async function loadCalendar() {
       html += '<div class="calendar-day other-month"></div>';
     }
 
+    // dots for todos by day
+    let todoDays = new Set();
+    try {
+      const todos = await fetchAPI('/api/todos');
+      todos.forEach(t => {
+        const d = new Date(t.createdAt);
+        if (d.getMonth()+1 === data.month && d.getFullYear() === data.year) todoDays.add(d.getDate());
+      });
+    } catch {}
     data.days.forEach(day => {
       const isToday = day.day === data.today;
-      html += `<div class="calendar-day ${isToday ? 'today' : ''}">${day.day}</div>`;
+      const hasTodo = todoDays.has(day.day);
+      html += `<div class="calendar-day ${isToday ? 'today' : ''} ${hasTodo ? 'has-todo' : ''}" data-day="${day.day}" title="${hasTodo ? 'Hai task' : ''}">${day.day}${hasTodo ? '<span class="cal-dot"></span>' : ''}</div>`;
     });
 
     grid.innerHTML = html;
   } catch {
-    document.getElementById('calendarGrid').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento calendario</div>';
+    document.getElementById('calendarGrid').innerHTML = emptyState('⚠️', 'Errore caricamento calendario');
   }
 }
 
@@ -932,7 +954,7 @@ async function loadNetwork() {
 
     info.innerHTML = html;
   } catch {
-    document.getElementById('networkInfo').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento rete</div>';
+    document.getElementById('networkInfo').innerHTML = emptyState('⚠️', 'Errore caricamento rete');
   }
 }
 
@@ -943,7 +965,7 @@ async function loadStorage() {
     const info = document.getElementById('storageInfo');
     
     if (data.usage.length === 0) {
-      info.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Nessun dispositivo di storage</div>';
+      info.innerHTML = emptyState('💾', 'Nessun dispositivo di storage');
       return;
     }
 
@@ -966,7 +988,7 @@ async function loadStorage() {
       `;
     }).join('');
   } catch {
-    document.getElementById('storageInfo').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento storage</div>';
+    document.getElementById('storageInfo').innerHTML = emptyState('⚠️', 'Errore caricamento storage');
   }
 }
 
@@ -977,7 +999,7 @@ async function loadServices() {
     const list = document.getElementById('servicesList');
     
     if (services.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Nessun servizio</div>';
+      list.innerHTML = emptyState('⚙️', 'Nessun servizio');
       return;
     }
 
@@ -991,7 +1013,7 @@ async function loadServices() {
       </div>
     `).join('');
   } catch {
-    document.getElementById('servicesList').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento servizi</div>';
+    document.getElementById('servicesList').innerHTML = emptyState('⚠️', 'Errore caricamento servizi');
   }
 }
 
@@ -1003,7 +1025,7 @@ async function loadGitHub() {
     const reposEl = document.getElementById('githubRepos');
 
     if (!data.user) {
-      userEl.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento GitHub</div>';
+      userEl.innerHTML = emptyState('⚠️', 'Errore caricamento GitHub');
       return;
     }
 
@@ -1020,7 +1042,7 @@ async function loadGitHub() {
     `;
 
     if (data.repos.length === 0) {
-      reposEl.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 12px; font-size: 0.85rem;">Nessun repository</div>';
+      reposEl.innerHTML = emptyState('🐙', 'Nessun repository');
       return;
     }
 
@@ -1036,7 +1058,7 @@ async function loadGitHub() {
       </a>
     `).join('');
   } catch {
-    document.getElementById('githubUser').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento GitHub</div>';
+    document.getElementById('githubUser').innerHTML = emptyState('⚠️', 'Errore caricamento GitHub');
   }
 }
 
@@ -1047,7 +1069,7 @@ async function loadCrypto() {
     const list = document.getElementById('cryptoList');
     
     if (cryptos.length === 0) {
-      list.innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Nessun dato crypto</div>';
+      list.innerHTML = emptyState('₿', 'Nessun dato crypto');
       return;
     }
 
@@ -1063,11 +1085,294 @@ async function loadCrypto() {
       `;
     }).join('');
   } catch {
-    document.getElementById('cryptoList').innerHTML = '<div style="color: var(--text-tertiary); text-align: center; padding: 20px;">Errore caricamento crypto</div>';
+    document.getElementById('cryptoList').innerHTML = emptyState('⚠️', 'Errore caricamento crypto');
   }
 }
 
-// ==================== WIDGET: TIMER ====================
+// ==================== FAVICON FOR BOOKMARKS ====================
+function getFaviconUrl(url) {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  } catch {
+    return 'https://www.google.com/s2/favicons?domain=example.com&sz=32';
+  }
+}
+
+// ==================== SPARKLINE CHART FOR SYSTEM ====================
+let systemSparklineChart = null;
+
+function initSystemSparkline() {
+  const canvas = document.getElementById('systemSparkline');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const ctx = canvas.getContext('2d');
+  systemSparklineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array(15).fill(''),
+      datasets: [
+        {
+          label: 'CPU %',
+          data: Array(15).fill(0),
+          borderColor: '#0071e3',
+          backgroundColor: 'rgba(0, 113, 227, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0,
+        },
+        {
+          label: 'RAM %',
+          data: Array(15).fill(0),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      scales: {
+        x: { display: false },
+        y: { display: false, min: 0, max: 100 }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true }
+      }
+    }
+  });
+}
+
+function updateSystemSparkline(cpuVal, ramVal) {
+  if (!systemSparklineChart) return;
+  const cpuData = systemSparklineChart.data.datasets[0].data;
+  const ramData = systemSparklineChart.data.datasets[1].data;
+
+  cpuData.push(cpuVal);
+  cpuData.shift();
+
+  ramData.push(ramVal);
+  ramData.shift();
+
+  systemSparklineChart.update('none');
+}
+
+// ==================== COMMAND PALETTE & SNIPPETS ====================
+const cmdPaletteOverlay = document.getElementById('cmdPaletteOverlay');
+const cmdPaletteInput = document.getElementById('cmdPaletteInput');
+
+function toggleCmdPalette(open) {
+  if (open) {
+    cmdPaletteOverlay.classList.add('visible');
+    cmdPaletteInput.value = '';
+    cmdPaletteInput.focus();
+    renderPalette('');
+  } else {
+    cmdPaletteOverlay.classList.remove('visible');
+  }
+}
+function renderPalette(q) {
+  const results = document.getElementById('cmdPaletteResults');
+  if (!results || !q) {
+    // show default actions when empty
+    results.querySelectorAll('.cmd-palette-item').forEach(el=> el.style.display = '');
+    return;
+  }
+  const query = q.toLowerCase();
+  // fuzzy hide non-matching actions
+  results.querySelectorAll('.cmd-palette-item').forEach(el=>{
+    const txt = el.textContent.toLowerCase();
+    el.style.display = txt.includes(query) ? '' : 'none';
+  });
+  // also inject dynamic results from todo/notes/bookmarks cache
+  let dyn = document.getElementById('paletteDyn');
+  if (!dyn) {
+    dyn = document.createElement('div');
+    dyn.id = 'paletteDyn';
+    results.appendChild(dyn);
+  }
+  dyn.innerHTML = '';
+  // async search in background
+  Promise.all([fetch('/api/todos').then(r=>r.json()).catch(()=>[]), fetch('/api/notes').then(r=>r.json()).catch(()=>[]), fetch('/api/bookmarks').then(r=>r.json()).catch(()=>[])]).then(([todos, notes, bookmarks])=>{
+    const items = [
+      ...todos.map(t=>({label: '✅ '+t.text, text: t.text})),
+      ...notes.map(n=>({label: '📝 '+n.text.slice(0,40), text: n.text})),
+      ...bookmarks.map(b=>({label: '🔖 '+b.name, text: b.name+' '+b.url})),
+    ].filter(i=> i.text.toLowerCase().includes(query)).slice(0,5);
+    dyn.innerHTML = items.map(i=> `<div class="cmd-palette-item" style="color:var(--text-secondary)">${i.label}</div>`).join('');
+  });
+}
+if (cmdPaletteInput) {
+  cmdPaletteInput.addEventListener('input', ()=> renderPalette(cmdPaletteInput.value));
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    const isOpen = cmdPaletteOverlay.classList.contains('visible');
+    toggleCmdPalette(!isOpen);
+  } else if (e.key === 'Escape') {
+    toggleCmdPalette(false);
+  }
+});
+
+if (cmdPaletteOverlay) {
+  cmdPaletteOverlay.addEventListener('click', (e) => {
+    if (e.target === cmdPaletteOverlay) toggleCmdPalette(false);
+  });
+}
+
+document.querySelectorAll('.cmd-palette-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const action = item.getAttribute('data-action');
+    executeCmdAction(action);
+    toggleCmdPalette(false);
+  });
+});
+
+function executeCmdAction(action) {
+  switch (action) {
+    case 'theme':
+      document.getElementById('themeToggle').click();
+      break;
+    case 'refresh':
+      loadWeather(); loadSystem(); loadTodos(); loadNotes(); loadBookmarks(); loadNews();
+      break;
+    case 'export-todos':
+      window.open('/api/export/todos', '_blank');
+      break;
+    case 'export-notes':
+      window.open('/api/export/notes', '_blank');
+      break;
+    case 'export-bookmarks':
+      window.open('/api/export/bookmarks', '_blank');
+      break;
+    case 'export-system':
+      window.open('/api/export/system', '_blank');
+      break;
+    case 'new-todo':
+      document.getElementById('todoInput').focus();
+      break;
+    case 'new-note':
+      document.getElementById('notesInput').focus();
+      break;
+    case 'grid':
+      if (window.momoSetEditing) {
+        const grid = document.getElementById('momoGrid');
+        const isEditing = grid.classList.contains('grid-editing');
+        window.momoSetEditing(!isEditing);
+      }
+      break;
+    case 'reset-layout':
+      localStorage.removeItem('momo-grid-layout');
+      location.reload();
+      break;
+    case 'focus':
+      document.getElementById('focusInput').focus();
+      break;
+  }
+}
+
+// Snippets Loader & Manager
+async function loadSnippets() {
+  try {
+    const res = await fetch('/api/snippets');
+    const snippets = await res.json();
+    const list = document.getElementById('snippetsList');
+    if (!list) return;
+
+    if (snippets.length === 0) {
+      list.innerHTML = emptyState('📋', 'Nessun snippet');
+      return;
+    }
+
+    list.innerHTML = snippets.map(s => `
+      <div class="snippet-item">
+        <div class="snippet-info">
+          <div class="snippet-title">${s.title}</div>
+          <code class="snippet-cmd" title="${s.command}">${s.command}</code>
+        </div>
+        <div class="snippet-actions">
+          <button class="snippet-btn" onclick="copySnippet('${s.command.replace(/'/g, "\\'")}')" title="Copia negli appunti">📋</button>
+          <button class="snippet-btn" onclick="deleteSnippet('${s.id}')" title="Elimina">✕</button>
+        </div>
+      </div>
+    `).join('');
+  } catch {}
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 1800);
+}
+function copySnippet(cmd) {
+  navigator.clipboard.writeText(cmd).then(() => {
+    playSound('todo');
+    showToast('Copiato ✓');
+  });
+}
+function applyWallpaper(name) {
+  document.body.setAttribute('data-wall', name);
+  localStorage.setItem('momo-wallpaper', name);
+  document.querySelectorAll('.wallpaper-opt').forEach(b=> b.classList.toggle('active', b.dataset.wall===name));
+}
+function initWallpaper() {
+  const saved = localStorage.getItem('momo-wallpaper') || 'aurora';
+  applyWallpaper(saved);
+  document.querySelectorAll('.wallpaper-opt').forEach(b=> b.addEventListener('click', ()=> applyWallpaper(b.dataset.wall)));
+}
+
+async function deleteSnippet(id) {
+  try {
+    await fetch(`/api/snippets/${id}`, { method: 'DELETE' });
+    playSound('delete');
+    showToast('Snippet eliminato');
+    loadSnippets();
+  } catch {
+    showToast('Errore eliminazione');
+  }
+}
+
+const snippetsForm = document.getElementById('snippetsForm');
+if (snippetsForm) {
+  snippetsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const titleInput = document.getElementById('snippetTitle');
+    const cmdInput = document.getElementById('snippetCommand');
+    const title = titleInput.value.trim();
+    const command = cmdInput.value.trim();
+
+    if (!title || !command) {
+      showToast('Compila titolo e comando');
+      return;
+    }
+
+    try {
+      await fetch('/api/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, command, category: 'CLI' }),
+      });
+      titleInput.value = '';
+      cmdInput.value = '';
+      playSound('todo');
+      showToast('Snippet salvato ✓');
+      loadSnippets();
+    } catch {
+      showToast('Errore salvataggio snippet');
+    }
+  });
+}
 let timerInterval = null;
 let timerSeconds = 25 * 60;
 let timerRunning = false;
@@ -1080,6 +1385,9 @@ function updateTimerDisplay() {
 
 document.getElementById('timerStart').addEventListener('click', () => {
   if (timerRunning) return;
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
   timerRunning = true;
   timerInterval = setInterval(() => {
     if (timerSeconds > 0) {
@@ -1089,6 +1397,12 @@ document.getElementById('timerStart').addEventListener('click', () => {
       clearInterval(timerInterval);
       timerRunning = false;
       playSound('todo');
+      showToast('⏰ Timer completato!');
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('MoMo — Timer', { body: 'Il tuo timer è scaduto! ⏰' });
+        }
+      } catch {}
     }
   }, 1000);
 });
@@ -1105,195 +1419,288 @@ document.getElementById('timerReset').addEventListener('click', () => {
   updateTimerDisplay();
 });
 
-// ==================== DRAG & DROP ====================
-let draggedWidget = null;
-let draggedElement = null;
+// ==================== MoMo GRID ====================
+let momoGrid = null;
+function initMomoGrid() {
+  const el = document.getElementById('momoGrid');
+  if (!el || typeof GridStack === 'undefined') return;
 
-function initDragAndDrop() {
-  const widgets = document.querySelectorAll('.widget');
-  
-  widgets.forEach(widget => {
-    widget.setAttribute('draggable', 'true');
-    
-    widget.addEventListener('dragstart', (e) => {
-      draggedWidget = widget;
-      widget.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', widget.id);
-    });
-    
-    widget.addEventListener('dragend', () => {
-      widget.classList.remove('dragging');
-      draggedWidget = null;
-      saveWidgetOrder();
-    });
-    
-    widget.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      
-      if (draggedWidget && draggedWidget !== widget) {
-        const rect = widget.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        
-        if (e.clientY < midY) {
-          widget.style.borderTop = '3px solid var(--accent)';
-          widget.style.borderBottom = '';
-        } else {
-          widget.style.borderTop = '';
-          widget.style.borderBottom = '3px solid var(--accent)';
-        }
-      }
-    });
-    
-    widget.addEventListener('dragleave', () => {
-      widget.style.borderTop = '';
-      widget.style.borderBottom = '';
-    });
-    
-    widget.addEventListener('drop', (e) => {
-      e.preventDefault();
-      widget.style.borderTop = '';
-      widget.style.borderBottom = '';
-      
-      if (draggedWidget && draggedWidget !== widget) {
-        const rect = widget.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        const insertBefore = e.clientY < midY;
-        
-        const parent = widget.parentNode;
-        const allWidgets = Array.from(parent.querySelectorAll('.widget'));
-        const draggedIndex = allWidgets.indexOf(draggedWidget);
-        const targetIndex = allWidgets.indexOf(widget);
-        
-        if (insertBefore) {
-          if (draggedIndex < targetIndex) {
-            parent.insertBefore(draggedWidget, widget);
-          } else {
-            parent.insertBefore(draggedWidget, widget);
-          }
-        } else {
-          if (draggedIndex < targetIndex) {
-            parent.insertBefore(draggedWidget, widget.nextSibling);
-          } else {
-            parent.insertBefore(draggedWidget, widget);
-          }
-        }
-      }
-    });
+  // v3 layout key - v2 had cramped weather/system rows, force reset to new defaults
+  const LAYOUT_KEY = 'momo-grid-layout-v3';
+  localStorage.removeItem('momo-grid-layout');
+  localStorage.removeItem('momo-grid-layout-v2');
+  const saved = localStorage.getItem(LAYOUT_KEY);
+  let savedLayout = null;
+  try { savedLayout = saved ? JSON.parse(saved) : null; } catch {}
+
+  momoGrid = GridStack.init({
+    column: 12,
+    cellHeight: 88,
+    margin: 8,
+    float: false,
+    animate: true,
+    draggable: { handle: '.widget-header', scroll: true },
+    resizable: { handles: 'se,e,sw,w' },
+    disableDrag: true,
+    disableResize: true,
+    columnOpts: {
+      breakpointForWindow: true,
+      breakpoints: [
+        { w: 768, c: 1 }
+      ]
+    },
+  }, el);
+
+  if (savedLayout) {
+    try { momoGrid.load(savedLayout); } catch {}
+  }
+
+  function saveLayout() {
+    const layout = momoGrid.save(false);
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+  }
+
+  momoGrid.on('change', saveLayout);
+  momoGrid.on('dragstop', saveLayout);
+  momoGrid.on('resizestop', saveLayout);
+
+  const editBtn = document.getElementById('gridEditBtn');
+  const resetBtn = document.getElementById('resetLayoutBtn');
+  let editing = false;
+
+  function setEditing(on) {
+    editing = on;
+    momoGrid.enableMove(on);
+    momoGrid.enableResize(on);
+    el.classList.toggle('grid-editing', on);
+    if (editBtn) editBtn.classList.toggle('active', on);
+  }
+
+  if (editBtn) editBtn.addEventListener('click', () => setEditing(!editing));
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    localStorage.removeItem('momo-grid-layout');
+    localStorage.removeItem('momo-grid-layout-v2');
+    localStorage.removeItem(LAYOUT_KEY);
+    location.reload();
   });
-}
 
-function saveWidgetOrder() {
-  const rows = document.querySelectorAll('.main-row, .news-row, .tools-row, .info-row');
-  const order = {};
-  
-  rows.forEach(row => {
-    const rowId = row.classList[0];
-    const widgets = Array.from(row.querySelectorAll('.widget')).map(w => w.id);
-    order[rowId] = widgets;
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key.toLowerCase() === 'g') setEditing(!editing);
   });
-  
-  localStorage.setItem('devdash-widget-order', JSON.stringify(order));
+
+  // also wire palette action
+  window.momoSetEditing = setEditing;
 }
 
-function loadWidgetOrder() {
+// ==================== MoMo GREETING ====================
+function initMomoGreeting() {
+  const title = document.getElementById('greetingTitle');
+  const sub = document.getElementById('greetingSubtitle');
+  if (!title) return;
+  const h = new Date().getHours();
+  let greet = 'Buongiorno ☀️';
+  let msg = 'Pronto per una grande giornata?';
+  if (h < 6) { greet = 'Buona notte 🌙'; msg = 'Dormi bene, domani è un altro giorno.'; }
+  else if (h < 12) { greet = 'Buongiorno ☀️'; msg = 'Inizia con il tuo Focus #1.'; }
+  else if (h < 18) { greet = 'Buon pomeriggio 🌤️'; msg = 'Mantieni il ritmo, sei a metà!'; }
+  else if (h < 22) { greet = 'Buonasera 🌅'; msg = 'Chiudi in bellezza la giornata.'; }
+  else { greet = 'Buona notte 🌙'; msg = 'Ricarica le energie.'; }
+  title.textContent = greet;
+  if (sub) sub.textContent = msg;
 
-// ==================== Charts ====================
-let cpuChart = null;
-let ramChart = null;
+  fetch('/api/quote').then(r=>r.json()).then(d=>{
+    const qt = document.querySelector('#greetingQuote .quote-text');
+    const qa = document.querySelector('#greetingQuote .quote-author');
+    if (qt) qt.textContent = '"' + d.content + '"';
+    if (qa) qa.textContent = '— ' + d.author;
+  }).catch(()=>{});
+  fetch('/api/briefing').then(r=>r.json()).then(d=>{
+    const el = document.getElementById('briefingBullets');
+    if (el && d.bullets) el.innerHTML = d.bullets.map(b=>`<div class="briefing-bullet">${b}</div>`).join('');
+  }).catch(()=>{});
+  const sunEl = document.getElementById('greetingSun');
+  if (sunEl) {
+    sunEl.textContent = '🌅 ' + (localStorage.getItem('momo-sunrise')||'06:42') + ' • 🌇 ' + (localStorage.getItem('momo-sunset')||'20:15');
+  }
+}
 
-function initCharts() {
-    const ctx1 = document.getElementById('cpuChart');
-    const ctx2 = document.getElementById('ramChart');
-    if (!ctx1 || !ctx2) return;
-    
-    cpuChart = new Chart(ctx1, {
-        type: 'line',
-        data: {
-            labels: Array(20).fill(''),
-            datasets: [{
-                label: 'CPU %',
-                data: Array(20).fill(0),
-                borderColor: '#0071e3',
-                tension: 0.4,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            animation: { duration: 300 },
-            scales: { y: { min: 0, max: 100 } }
-        }
+// ==================== FOCUS WIDGET ====================
+function initFocusWidget() {
+  const input = document.getElementById('focusInput');
+  const display = document.getElementById('focusDisplay');
+  const check = document.getElementById('focusCheck');
+  const clear = document.getElementById('focusClear');
+  if (!input || !display) return;
+
+  function render() {
+    const data = JSON.parse(localStorage.getItem('momo-focus')||'null');
+    if (!data || !data.text) {
+      display.innerHTML = '<span class="focus-empty">Scrivi il tuo focus e premi Invio ✨</span>';
+      input.style.display = '';
+      if (check) { check.textContent = '☐'; check.classList.remove('done'); }
+      return;
+    }
+    input.style.display = 'none';
+    display.textContent = data.text;
+    display.style.textDecoration = data.done ? 'line-through' : 'none';
+    display.style.opacity = data.done ? '0.6' : '1';
+    if (check) {
+      check.textContent = data.done ? '☑' : '☐';
+      check.classList.toggle('done', !!data.done);
+    }
+  }
+
+  input.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && input.value.trim()) {
+      localStorage.setItem('momo-focus', JSON.stringify({text: input.value.trim(), done: false, date: new Date().toISOString().slice(0,10)}));
+      input.value = '';
+      render();
+      playSound('todo');
+    }
+  });
+  if (check) check.addEventListener('click', ()=>{
+    const d = JSON.parse(localStorage.getItem('momo-focus')||'null');
+    if (!d) return;
+    d.done = !d.done;
+    localStorage.setItem('momo-focus', JSON.stringify(d));
+    render();
+    playSound('todo');
+  });
+  if (clear) clear.addEventListener('click', ()=>{
+    localStorage.removeItem('momo-focus');
+    render();
+  });
+
+  // reset daily at midnight
+  const today = new Date().toISOString().slice(0,10);
+  const saved = JSON.parse(localStorage.getItem('momo-focus')||'null');
+  if (saved && saved.date && saved.date !== today) {
+    // keep yesterday's focus but allow new one? Clear done status
+    // For now clear if done, keep if not done
+    if (saved.done) localStorage.removeItem('momo-focus');
+  }
+
+  render();
+}
+
+// ==================== WIDGET MANAGER ====================
+const WIDGET_DEFS = [
+  { id: 'weather', label: '🌤️ Meteo', desc: 'Temperatura & previsioni' },
+  { id: 'system', label: '💻 Sistema', desc: 'CPU/RAM live' },
+  { id: 'focus', label: '🎯 Focus', desc: 'Obiettivo del giorno' },
+  { id: 'todo', label: '✅ Todo', desc: 'Task giornalieri' },
+  { id: 'news', label: '📰 Briefing', desc: 'HackerNews' },
+  { id: 'notes', label: '📝 Note', desc: 'Note veloci' },
+  { id: 'bookmarks', label: '🔖 Bookmarks', desc: 'Link rapidi' },
+  { id: 'snippets', label: '📋 Snippets', desc: 'Comandi CLI' },
+  { id: 'calendar', label: '📅 Calendario', desc: 'Mese corrente' },
+  { id: 'network', label: '🌐 Rete', desc: 'IP & interfacce' },
+  { id: 'storage', label: '💾 Storage', desc: 'Dischi' },
+  { id: 'services', label: '⚙️ Servizi', desc: 'Systemctl' },
+  { id: 'github', label: '🐙 GitHub', desc: 'Repo & profilo' },
+  { id: 'crypto', label: '₿ Crypto', desc: 'BTC/ETH/SOL' },
+  { id: 'timer', label: '⏱️ Pomodoro', desc: '25 min timer' },
+];
+
+function initWidgetManager() {
+  const overlay = document.getElementById('widgetManagerOverlay');
+  const grid = document.getElementById('wmGrid');
+  const btn = document.getElementById('widgetManagerBtn');
+  const closeBtn = document.getElementById('wmClose');
+  const doneBtn = document.getElementById('wmDone');
+  const showAllBtn = document.getElementById('wmShowAll');
+  if (!overlay || !grid || !btn) return;
+
+  function getHidden() {
+    try { return JSON.parse(localStorage.getItem('momo-hidden-widgets') || '[]'); } catch { return []; }
+  }
+  function setHidden(arr) {
+    localStorage.setItem('momo-hidden-widgets', JSON.stringify(arr));
+    applyHidden();
+  }
+  function applyHidden() {
+    const hidden = new Set(getHidden());
+    WIDGET_DEFS.forEach(d => {
+      const el = document.querySelector(`.grid-stack-item[gs-id="${d.id}"]`);
+      if (el) el.style.display = hidden.has(d.id) ? 'none' : '';
     });
-    
-    ramChart = new Chart(ctx2, {
-        type: 'line',
-        data: {
-            labels: Array(20).fill(''),
-            datasets: [{
-                label: 'RAM %',
-                data: Array(20).fill(0),
-                borderColor: '#10b981',
-                tension: 0.4,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            animation: { duration: 300 },
-            scales: { y: { min: 0, max: 100 } }
-        }
-    });
-}
+    if (window.momoGrid) try { window.momoGrid.compact(); } catch {}
+  }
 
-function updateCharts(cpu, ram) {
-    if (!cpuChart || !ramChart) return;
-    cpuChart.data.datasets[0].data.push(cpu);
-    cpuChart.data.datasets[0].data.shift();
-    cpuChart.update();
-    
-    ramChart.data.datasets[0].data.push(ram);
-    ramChart.data.datasets[0].data.shift();
-    ramChart.update();
-}
-
-
-  const saved = localStorage.getItem('devdash-widget-order');
-  if (!saved) return;
-  
-  try {
-    const order = JSON.parse(saved);
-    
-    Object.entries(order).forEach(([rowId, widgetIds]) => {
-      const row = document.querySelector(`.${rowId}`);
-      if (!row) return;
-      
-      const widgets = Array.from(row.querySelectorAll('.widget'));
-      const widgetMap = new Map(widgets.map(w => [w.id, w]));
-      
-      widgetIds.forEach(id => {
-        const widget = widgetMap.get(id);
-        if (widget) {
-          row.appendChild(widget);
-        }
+  function render() {
+    const hidden = new Set(getHidden());
+    grid.innerHTML = WIDGET_DEFS.map(d => `
+      <label class="wm-item ${hidden.has(d.id) ? 'off' : ''}">
+        <input type="checkbox" ${hidden.has(d.id) ? '' : 'checked'} data-id="${d.id}" />
+        <span><div>${d.label}</div><div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:500">${d.desc}</div></span>
+      </label>
+    `).join('');
+    grid.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const id = inp.getAttribute('data-id');
+        let hiddenArr = getHidden();
+        if (inp.checked) hiddenArr = hiddenArr.filter(x => x !== id);
+        else if (!hiddenArr.includes(id)) hiddenArr.push(id);
+        setHidden(hiddenArr);
+        render();
       });
     });
-  } catch {
-    // silently fail
+  }
+
+  function open() { render(); overlay.classList.add('visible'); }
+  function close() { overlay.classList.remove('visible'); }
+
+  btn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  doneBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  showAllBtn.addEventListener('click', () => { setHidden([]); render(); });
+
+  window.momoApplyHidden = applyHidden;
+  applyHidden();
+  window.momoGrid = momoGrid;
+
+  // Profili Mattina/Lavoro/Sera
+  const PROFILES = {
+    morning: [],
+    work: ['calendar','crypto','timer'],
+    evening: ['services','network','storage','github'],
+  };
+  const profileBtns = document.querySelectorAll('.profile-btn');
+  function applyProfile(name) {
+    const hidden = PROFILES[name] || [];
+    localStorage.setItem('momo-hidden-widgets', JSON.stringify(hidden));
+    localStorage.setItem('momo-profile', name);
+    profileBtns.forEach(b=>b.classList.toggle('active', b.dataset.profile===name));
+    applyHidden();
+  }
+  profileBtns.forEach(b=>b.addEventListener('click', ()=>applyProfile(b.dataset.profile)));
+  const savedProfile = localStorage.getItem('momo-profile');
+  if (savedProfile && PROFILES[savedProfile]) {
+    profileBtns.forEach(b=>b.classList.toggle('active', b.dataset.profile===savedProfile));
   }
 }
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
   // Check if landing page was already seen
-  const landingSeen = localStorage.getItem('devdash-landing-seen');
+  const landingSeen = localStorage.getItem('momo-landing-seen');
   if (landingSeen) {
     hideLanding();
   }
   
-  loadWidgetOrder();
-  initDragAndDrop();
+  // MoMo Grid
+  initMomoGrid();
+  initMomoGreeting();
+  initFocusWidget();
+  initWidgetManager();
+  initWallpaper();
+  initSystemSparkline();
+  // clock blink
+  const ct = document.getElementById('headerClockTime');
+  if (ct) ct.innerHTML = ct.textContent.replace(':', '<span class="clock-blink">:</span>');
+  loadSnippets();
   
   loadWeather();
   loadSystem();
@@ -1311,8 +1718,10 @@ document.addEventListener('DOMContentLoaded', () => {
   updateHeaderClock();
 
   setInterval(loadWeather, 60000);
-  setInterval(loadSystem, 2000);
-  setInterval(loadClocks, 10000);
+  // System metrics via WebSocket (every 3s). HTTP poll as fallback when WS is down.
+  setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) loadSystem();
+  }, 5000);
   setInterval(loadNews, 120000);
   setInterval(loadNotes, 30000);
   setInterval(loadBookmarks, 30000);

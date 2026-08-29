@@ -1,7 +1,6 @@
 # Node
 node_modules/
 npm-debug.log*
-package-lock.json
 
 # Env
 .env
@@ -18,10 +17,11 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
-# Data (contains local state)
-data/
-*.db
-*.sqlite
+# Data (contains local state) - keep structure but ignore contents
+data/*.sqlite
+data/*.sqlite-journal
+data/*.db
+!data/.gitkeep
 
 # Logs
 *.log

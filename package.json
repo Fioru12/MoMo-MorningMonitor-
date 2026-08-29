@@ -1,7 +1,7 @@
 {
-  "name": "devdash",
-  "version": "2.2.0",
-  "description": "DevMonitor - Modern dashboard for developers and sysadmins",
+  "name": "momo-morning-monitor",
+  "version": "3.0.0",
+  "description": "MoMo — your personal morning dashboard: weather, focus, briefing, system and more",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -17,12 +17,13 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "chart.js": "^4.4.1",
     "compression": "^1.8.1",
     "express": "^4.21.0",
     "express-rate-limit": "^8.6.0",
     "helmet": "^8.3.0",
-    "ws": "^8.16.0",
-    "chart.js": "^4.4.1",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^6.0.1",
+    "systeminformation": "^5.33.5",
+    "ws": "^8.16.0"
   }
 }

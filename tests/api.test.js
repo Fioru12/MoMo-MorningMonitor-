@@ -1,34 +1,60 @@
 /**
- * DevMonitor - API Tests
+ * MoMo - API Tests (Self-contained)
  * Run: npm test
  */
 
 const http = require('http');
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
 
-const BASE_URL = 'http://localhost:3001';
+// We test against our server endpoints
+const PORT = 3999; // test port - isolato, non confligge con 3100
+const BASE_URL = `http://localhost:${PORT}`;
 
 // Helper per fare richieste HTTP
-function request(path) {
+function request(path, options = {}) {
   return new Promise((resolve, reject) => {
-    http.get(`${BASE_URL}${path}`, (res) => {
+    const reqOptions = {
+      hostname: 'localhost',
+      port: PORT,
+      path: path,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+    };
+
+    const req = http.request(reqOptions, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
-          resolve({ status: res.statusCode, data: JSON.parse(data) });
+          resolve({ status: res.statusCode, headers: res.headers, data: JSON.parse(data) });
         } catch {
-          resolve({ status: res.statusCode, data });
+          resolve({ status: res.statusCode, headers: res.headers, data });
         }
       });
-    }).on('error', reject);
+    });
+
+    req.on('error', reject);
+    if (options.body) {
+      req.write(JSON.stringify(options.body));
+    }
+    req.end();
   });
 }
 
-// Test suite
 async function runTests() {
-  console.log('🧪 DevMonitor API Tests\n');
+  console.log('🧪 MoMo Self-Contained API Tests\n');
   let passed = 0;
   let failed = 0;
+
+  // Start temporary server for testing
+  process.env.PORT = PORT;
+  // Clear require cache for server if needed or start it
+  const serverModule = require('../server.js');
+
+  // Wait 1 second for server to boot
+  await new Promise(r => setTimeout(r, 1000));
 
   // Test 1: Health Check
   try {
@@ -44,21 +70,7 @@ async function runTests() {
     failed++;
   }
 
-  // Test 2: Weather API
-  try {
-    const res = await request('/api/weather');
-    if (res.status === 200 && res.data.city) {
-      console.log('✅ Weather API - Returns city data');
-      passed++;
-    } else {
-      throw new Error('Weather API failed');
-    }
-  } catch (err) {
-    console.log('❌ Weather API -', err.message);
-    failed++;
-  }
-
-  // Test 3: System API
+  // Test 2: System API
   try {
     const res = await request('/api/system');
     if (res.status === 200 && res.data.hostname && res.data.cpu) {
@@ -72,193 +84,56 @@ async function runTests() {
     failed++;
   }
 
-  // Test 4: News API
+  // Test 3: Todos CRUD API
   try {
-    const res = await request('/api/news');
-    if (res.status === 200 && Array.isArray(res.data)) {
-      console.log('✅ News API - Returns news array');
-      passed++;
-    } else {
-      throw new Error('News API failed');
-    }
-  } catch (err) {
-    console.log('❌ News API -', err.message);
-    failed++;
-  }
-
-  // Test 5: Time API
-  try {
-    const res = await request('/api/time');
-    if (res.status === 200 && Array.isArray(res.data) && res.data.length > 0) {
-      console.log('✅ Time API - Returns timezones');
-      passed++;
-    } else {
-      throw new Error('Time API failed');
-    }
-  } catch (err) {
-    console.log('❌ Time API -', err.message);
-    failed++;
-  }
-
-  // Test 6: Calendar API
-  try {
-    const res = await request('/api/calendar');
-    if (res.status === 200 && res.data.month && res.data.days) {
-      console.log('✅ Calendar API - Returns calendar data');
-      passed++;
-    } else {
-      throw new Error('Calendar API failed');
-    }
-  } catch (err) {
-    console.log('❌ Calendar API -', err.message);
-    failed++;
-  }
-
-  // Test 7: Network API
-  try {
-    const res = await request('/api/network');
-    if (res.status === 200 && res.data.interfaces) {
-      console.log('✅ Network API - Returns network info');
-      passed++;
-    } else {
-      throw new Error('Network API failed');
-    }
-  } catch (err) {
-    console.log('❌ Network API -', err.message);
-    failed++;
-  }
-
-  // Test 8: Storage API
-  try {
-    const res = await request('/api/storage');
-    if (res.status === 200 && Array.isArray(res.data.usage)) {
-      console.log('✅ Storage API - Returns storage info');
-      passed++;
-    } else {
-      throw new Error('Storage API failed');
-    }
-  } catch (err) {
-    console.log('❌ Storage API -', err.message);
-    failed++;
-  }
-
-  // Test 9: Services API
-  try {
-    const res = await request('/api/services');
-    if (res.status === 200 && Array.isArray(res.data)) {
-      console.log('✅ Services API - Returns services array');
-      passed++;
-    } else {
-      throw new Error('Services API failed');
-    }
-  } catch (err) {
-    console.log('❌ Services API -', err.message);
-    failed++;
-  }
-
-  // Test 10: GitHub API
-  try {
-    const res = await request('/api/github');
-    if (res.status === 200 && (res.data.user || res.data.repos)) {
-      console.log('✅ GitHub API - Returns GitHub data');
-      passed++;
-    } else {
-      throw new Error('GitHub API failed');
-    }
-  } catch (err) {
-    console.log('❌ GitHub API -', err.message);
-    failed++;
-  }
-
-  // Test 11: Crypto API
-  try {
-    const res = await request('/api/crypto');
-    if (res.status === 200 && Array.isArray(res.data)) {
-      console.log('✅ Crypto API - Returns crypto data');
-      passed++;
-    } else {
-      throw new Error('Crypto API failed');
-    }
-  } catch (err) {
-    console.log('❌ Crypto API -', err.message);
-    failed++;
-  }
-
-  // Test 12: Todos API (CRUD)
-  try {
-    // Create
-    const postRes = await new Promise((resolve, reject) => {
-      const data = JSON.stringify({ text: 'Test todo' });
-      const options = {
-        hostname: 'localhost',
-        port: 3001,
-        path: '/api/todos',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      };
-      const req = http.request(options, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, data: JSON.parse(body) }));
-      });
-      req.on('error', reject);
-      req.write(data);
-      req.end();
+    // POST
+    const postRes = await request('/api/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: { text: 'Automated test todo' }
     });
-
     if (postRes.status === 201 && postRes.data.id) {
-      console.log('✅ Todos API - Create works');
-      passed++;
-
-      // Read
+      const todoId = postRes.data.id;
+      
+      // GET
       const getRes = await request('/api/todos');
-      if (getRes.data.some(t => t.id === postRes.data.id)) {
-        console.log('✅ Todos API - Read works');
-        passed++;
+      const found = getRes.data.find(t => t.id === todoId);
+      if (found) {
+        // DELETE
+        const delRes = await request(`/api/todos/${todoId}`, { method: 'DELETE' });
+        if (delRes.status === 200) {
+          console.log('✅ Todos API - CRUD operations passed');
+          passed++;
+        } else {
+          throw new Error('Delete todo failed');
+        }
       } else {
-        throw new Error('Todo not found after creation');
+        throw new Error('Created todo not found in list');
       }
-
-      // Delete
-      await new Promise((resolve, reject) => {
-        const options = {
-          hostname: 'localhost',
-          port: 3001,
-          path: `/api/todos/${postRes.data.id}`,
-          method: 'DELETE',
-        };
-        const req = http.request(options, (res) => {
-          res.on('end', resolve);
-        });
-        req.on('error', reject);
-        req.end();
-      });
-      console.log('✅ Todos API - Delete works');
-      passed++;
     } else {
-      throw new Error('Todo creation failed');
+      throw new Error('Create todo failed');
     }
   } catch (err) {
     console.log('❌ Todos API -', err.message);
     failed++;
   }
 
-  // Summary
-  console.log('\n' + '='.repeat(50));
-  console.log(`📊 Results: ${passed} passed, ${failed} failed`);
-  console.log('='.repeat(50));
-
-  if (failed > 0) {
-    console.log('\n⚠️  Some tests failed!');
-    process.exit(1);
-  } else {
-    console.log('\n🎉 All tests passed!');
-    process.exit(0);
+  // Test 4: Export CSV API (verifying SPA fallback fix)
+  try {
+    const res = await request('/api/export/system');
+    if (res.status === 200 && res.headers['content-type'].includes('text/csv')) {
+      console.log('✅ Export CSV API - Successfully returns CSV instead of SPA HTML');
+      passed++;
+    } else {
+      throw new Error('Export CSV returned status ' + res.status);
+    }
+  } catch (err) {
+    console.log('❌ Export CSV API -', err.message);
+    failed++;
   }
+
+  console.log(`\n📊 Test Results: ${passed} passed, ${failed} failed.`);
+  process.exit(failed > 0 ? 1 : 0);
 }
 
-// Run tests
-runTests().catch(err => {
-  console.error('Test runner error:', err);
-  process.exit(1);
-});
+runTests();

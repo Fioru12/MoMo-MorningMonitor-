@@ -4,56 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0071e3" />
-  <meta name="description" content="DevMonitor - La tua dashboard informativa" />
+  <meta name="description" content="MoMo — Il tuo Morning Monitor personale" />
   <link rel="manifest" href="/manifest.json" />
-  <title>DevMonitor</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <title>MoMo — Morning Monitor</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css" rel="stylesheet" integrity="sha384-3466xzONp5jWI9wRY4i5C4LQqPF7wQiNl2TPqqWNEKMxqleN1p3y+uCjs5rObTFv" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-extra.min.css" rel="stylesheet" integrity="sha384-jMuLjAsBfwvyGiR9ynwk0CdSHsXdVoChAJ6lZnWeVxw8SKNVqI8lokdPzE81dYPo" crossorigin="anonymous" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js" integrity="sha384-nK6N0YlXqSXYT4GJKLD6y4mPJ9w1v9DtgfsQHqltu+OHCjpKMRZ2koek3LRIcbCK" crossorigin="anonymous"></script>
 </head>
 <body>
+  <div class="bg-orb" style="width: 520px; height: 520px; background: radial-gradient(circle, rgba(0,122,255,0.9), transparent 70%); left: -80px; top: -120px;"></div>
+  <div class="bg-orb" style="width: 640px; height: 640px; background: radial-gradient(circle, rgba(139,92,246,0.7), transparent 70%); right: -100px; top: -60px;"></div>
+  <div class="bg-orb" style="width: 700px; height: 450px; background: radial-gradient(ellipse, rgba(6,182,212,0.5), transparent 70%); left: 30%; top: 45%;"></div>
   <canvas id="particleCanvas" aria-hidden="true"></canvas>
 
   <!-- Landing Page -->
   <div class="landing-overlay" id="landingOverlay" role="dialog" aria-modal="true" aria-labelledby="landingTitle">
     <div class="landing-content">
-      <div class="landing-logo">⎔ DevMonitor</div>
-      <h1 class="landing-title" id="landingTitle">Dashboard Personale<br/>per Developers & SysAdmin</h1>
-      <p class="landing-subtitle">Monitora sistema, news, crypto e molto altro in un'interfaccia moderna e reattiva</p>
-      
+      <div class="landing-logo">☀️ MoMo</div>
+      <h1 class="landing-title" id="landingTitle">Il tuo mattino,<br/>perfettamente organizzato</h1>
+      <p class="landing-subtitle">Meteo, focus del giorno, news e sistema — tutto a portata di sguardo appena sveglio</p>
       <div class="landing-features">
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">🌤️</span>
-          <span class="feature-text">Meteo Live</span>
-        </div>
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">💻</span>
-          <span class="feature-text">Monitor Sistema</span>
-        </div>
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">📰</span>
-          <span class="feature-text">News Tech</span>
-        </div>
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">₿</span>
-          <span class="feature-text">Crypto Tracker</span>
-        </div>
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">✅</span>
-          <span class="feature-text">Todo & Note</span>
-        </div>
-        <div class="landing-feature">
-          <span class="feature-icon" aria-hidden="true">🐙</span>
-          <span class="feature-text">GitHub Integration</span>
-        </div>
+        <div class="landing-feature"><span class="feature-icon">🌤️</span><span class="feature-text">Meteo & Alba</span></div>
+        <div class="landing-feature"><span class="feature-icon">🎯</span><span class="feature-text">Focus Giorno</span></div>
+        <div class="landing-feature"><span class="feature-icon">📰</span><span class="feature-text">Briefing News</span></div>
+        <div class="landing-feature"><span class="feature-icon">💻</span><span class="feature-text">Sistema Live</span></div>
+        <div class="landing-feature"><span class="feature-icon">✅</span><span class="feature-text">Todo & Note</span></div>
+        <div class="landing-feature"><span class="feature-icon">✨</span><span class="feature-text">Griglia Apple</span></div>
       </div>
-
-      <button class="landing-btn" id="landingBtn" aria-label="Entra nella dashboard">
-        <span>Entra nella Dashboard</span>
-        <span class="btn-arrow" aria-hidden="true">→</span>
-      </button>
-
+      <button class="landing-btn" id="landingBtn" aria-label="Entra nella dashboard"><span>Buongiorno ☀️</span><span class="btn-arrow">→</span></button>
       <p class="landing-hint">Premi <kbd>Invio</kbd> per entrare</p>
     </div>
   </div>
@@ -63,7 +48,7 @@
     <header class="header" role="banner">
       <div class="header-top">
         <div class="header-brand">
-          <h1 class="logo">⎔ DevMonitor</h1>
+          <h1 class="logo">☀️ MoMo</h1>
           <span class="header-date" id="headerDate">--</span>
         </div>
         <div class="header-right">
@@ -86,256 +71,271 @@
             <span class="weather-icon" id="headerWeatherIcon" aria-hidden="true">🌤️</span>
             <span class="weather-temp" id="headerWeatherTemp">--°</span>
           </div>
-          <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)" aria-haspopup="true" aria-expanded="false">🎨</button>
-          <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema chiaro o scuro" title="Cambia tema (D)">
-            <span class="icon-sun" aria-hidden="true">☀️</span>
-            <span class="icon-moon" aria-hidden="true">🌙</span>
-          </button>
+          <span class="header-divider" aria-hidden="true"></span>
+          <div class="profile-switcher" id="profileSwitcher">
+            <button class="profile-btn active" data-profile="morning">🌅 Mattina</button>
+            <button class="profile-btn" data-profile="work">💼 Lavoro</button>
+            <button class="profile-btn" data-profile="evening">🌙 Sera</button>
+          </div>
+          <span class="header-divider" aria-hidden="true"></span>
+          <div class="header-icon-group">
+            <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
+            <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget">👁️</button>
+            <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)">◧</button>
+          </div>
         </div>
       </div>
-      <!-- Color picker -->
       <div class="color-popup" id="colorPopup" role="dialog" aria-label="Selettore colore accent" aria-hidden="true">
-        <div class="color-popup-header">
-          <span>Colore accent</span>
-          <button class="color-popup-close" id="colorPopupClose" aria-label="Chiudi selettore colore">✕</button>
-        </div>
-        <div class="color-options" id="colorOptions" role="radiogroup" aria-label="Colori disponibili">
-          <button class="color-opt active" data-color="#0071e3" style="background:#0071e3" aria-label="Blu" role="radio" aria-checked="true"></button>
-          <button class="color-opt" data-color="#6c63ff" style="background:#6c63ff" aria-label="Viola" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#3b82f6" style="background:#3b82f6" aria-label="Blu chiaro" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#06b6d4" style="background:#06b6d4" aria-label="Ciano" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#10b981" style="background:#10b981" aria-label="Verde" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#f59e0b" style="background:#f59e0b" aria-label="Arancione" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#ef4444" style="background:#ef4444" aria-label="Rosso" role="radio" aria-checked="false"></button>
-          <button class="color-opt" data-color="#ec4899" style="background:#ec4899" aria-label="Rosa" role="radio" aria-checked="false"></button>
+        <div class="color-popup-header"><span>Colore accent</span><button class="color-popup-close" id="colorPopupClose">✕</button></div>
+        <div class="color-options" id="colorOptions" role="radiogroup">
+          <button class="color-opt active" data-color="#0071e3" style="background:#0071e3" aria-label="Blu"></button>
+          <button class="color-opt" data-color="#6c63ff" style="background:#6c63ff" aria-label="Viola"></button>
+          <button class="color-opt" data-color="#ff8a00" style="background:#ff8a00" aria-label="Arancio"></button>
+          <button class="color-opt" data-color="#06b6d4" style="background:#06b6d4" aria-label="Ciano"></button>
+          <button class="color-opt" data-color="#10b981" style="background:#10b981" aria-label="Verde"></button>
+          <button class="color-opt" data-color="#f59e0b" style="background:#f59e0b" aria-label="Ambra"></button>
+          <button class="color-opt" data-color="#ef4444" style="background:#ef4444" aria-label="Rosso"></button>
+          <button class="color-opt" data-color="#ec4899" style="background:#ec4899" aria-label="Rosa"></button>
         </div>
       </div>
-      <!-- News Ticker -->
-      <div class="news-ticker" id="newsTicker">
-        <span class="ticker-label">🔥 LIVE</span>
-        <div class="ticker-track" id="tickerTrack">
-          <span class="ticker-text">Caricamento notizie...</span>
-        </div>
-      </div>
+      <div class="news-ticker" id="newsTicker"><span class="ticker-label">🔥 LIVE</span><div class="ticker-track" id="tickerTrack"><span class="ticker-text">Caricamento notizie...</span></div></div>
     </header>
 
-    <!-- MAIN ROW: Meteo + Sistema -->
-    <div class="main-row">
-      <div class="widget widget-weather" id="widgetWeather" role="region" aria-labelledby="weatherTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">🌤️</span>
-          <h2 id="weatherTitle">Meteo</h2>
-          <button class="widget-refresh" data-widget="weather" aria-label="Aggiorna meteo">↻</button>
-        </div>
-        <div class="widget-body weather-body" id="weatherBody">
-          <div class="weather-main">
-            <span class="weather-temp loading" id="weatherTemp">--°</span>
-            <span class="weather-desc" id="weatherDesc">Caricamento...</span>
+    <!-- MORNING GREETING -->
+    <div class="momo-greeting" id="momoGreeting">
+      <div class="greeting-main">
+        <h2 class="greeting-title" id="greetingTitle">Buongiorno ☀️</h2>
+        <p class="greeting-subtitle" id="greetingSubtitle">Pronto per una grande giornata?</p>
+        <div class="briefing-bullets" id="briefingBullets"></div>
+      </div>
+      <div class="greeting-meta">
+        <div class="greeting-quote" id="greetingQuote"><span class="quote-text">Caricamento ispirazione...</span><span class="quote-author"></span></div>
+        <div class="greeting-sun" id="greetingSun">🌅 --:-- • 🌇 --:--</div>
+      </div>
+    </div>
+
+    <!-- GRID STACK -->
+    <div class="grid-stack" id="momoGrid">
+
+      <!-- Meteo -->
+      <div class="grid-stack-item" gs-id="weather" gs-w="6" gs-h="6" gs-x="0" gs-y="0">
+        <div class="grid-stack-item-content widget widget-weather" id="widgetWeather">
+          <div class="widget-header"><span class="widget-icon">🌤️</span><h2>Meteo</h2><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="weather">↻</button></div>
+          <div class="widget-body weather-body" id="weatherBody">
+            <div class="weather-main"><span class="weather-temp loading" id="weatherTemp">--°</span><span class="weather-desc" id="weatherDesc">Caricamento...</span></div>
+            <div class="weather-details"><div class="weather-detail"><span class="detail-label">Percepita</span><span id="weatherFeels">--°</span></div><div class="weather-detail"><span class="detail-label">Umidità</span><span id="weatherHumidity">--%</span></div><div class="weather-detail"><span class="detail-label">Vento</span><span id="weatherWind">-- km/h</span></div></div>
+            <div class="weather-city" id="weatherCity">📍 Rilevamento...</div>
+            <div class="forecast-row" id="forecastRow"></div>
+            <div style="height: 60px; margin-top: 8px;"><canvas id="hourlyChart"></canvas></div>
           </div>
-          <div class="weather-details">
-            <div class="weather-detail"><span class="detail-label">Percepita</span><span id="weatherFeels">--°</span></div>
-            <div class="weather-detail"><span class="detail-label">Umidità</span><span id="weatherHumidity">--%</span></div>
-            <div class="weather-detail"><span class="detail-label">Vento</span><span id="weatherWind">-- km/h</span></div>
-          </div>
-          <div class="weather-city" id="weatherCity">📍 Rilevamento...</div>
-          <div class="forecast-row" id="forecastRow"></div>
+          <div class="widget-error" id="weatherError"></div>
         </div>
-        <div class="widget-error" id="weatherError"></div>
       </div>
 
-      <div class="widget widget-system" id="widgetSystem" role="region" aria-labelledby="systemTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">💻</span>
-          <h2 id="systemTitle">Sistema</h2>
-          <button class="widget-refresh" data-widget="system" aria-label="Aggiorna sistema">↻</button>
-        </div>
-        <div class="widget-body system-body" id="systemBody">
-          <div class="sys-cards">
-            <div class="sys-card">
-              <span class="sys-card-icon">⚡</span>
-              <span class="sys-card-label">CPU</span>
-              <span class="sys-card-value" id="cpuValue">--%</span>
-              <div class="sys-bar"><div class="sys-bar-fill cpu-bar" id="cpuBar"></div></div>
+      <!-- Sistema -->
+      <div class="grid-stack-item" gs-id="system" gs-w="6" gs-h="6" gs-x="6" gs-y="0">
+        <div class="grid-stack-item-content widget widget-system" id="widgetSystem">
+          <div class="widget-header"><span class="widget-icon">💻</span><h2>Sistema</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="system">↻</button></div>
+          <div class="widget-body system-body" id="systemBody">
+            <div class="sys-cards">
+              <div class="sys-card"><span class="sys-card-icon">⚡</span><span class="sys-card-label">CPU</span><span class="sys-card-value" id="cpuValue">--%</span><div class="sys-bar"><div class="sys-bar-fill cpu-bar" id="cpuBar"></div></div></div>
+              <div class="sys-card"><span class="sys-card-icon">🧠</span><span class="sys-card-label">RAM</span><span class="sys-card-value" id="ramValue">--%</span><div class="sys-bar"><div class="sys-bar-fill ram-bar" id="ramBar"></div></div></div>
             </div>
-            <div class="sys-card">
-              <span class="sys-card-icon">🧠</span>
-              <span class="sys-card-label">RAM</span>
-              <span class="sys-card-value" id="ramValue">--%</span>
-              <div class="sys-bar"><div class="sys-bar-fill ram-bar" id="ramBar"></div></div>
-            </div>
-          </div>
-          <div class="sys-meta">
-            <span id="sysHostname">-</span>
-            <span id="sysUptime">-</span>
-            <span id="sysLoad">-</span>
+            <div class="sparkline-container"><canvas id="systemSparkline" class="sparkline-canvas"></canvas></div>
+            <div class="sys-meta"><span id="sysHostname">-</span><span id="sysPlatform">-</span><span id="sysUptime">-</span><span id="sysLoad">-</span></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- NEWS ROW -->
-    <div class="news-row">
-      <div class="widget widget-news" id="widgetNews" role="region" aria-labelledby="newsTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">📰</span>
-          <h2 id="newsTitle">Ultime notizie tech</h2>
-          <button class="widget-refresh" data-widget="news" aria-label="Aggiorna notizie">↻</button>
-        </div>
-        <div class="widget-body news-body" id="newsBody">
-          <div class="news-list" id="newsList">
-            <div class="news-skeleton"></div>
-            <div class="news-skeleton"></div>
-            <div class="news-skeleton"></div>
+      <!-- Focus del giorno - NEW MORNING WIDGET -->
+      <div class="grid-stack-item" gs-id="focus" gs-w="4" gs-h="4" gs-x="0" gs-y="5">
+        <div class="grid-stack-item-content widget widget-focus" id="widgetFocus">
+          <div class="widget-header"><span class="widget-icon">🎯</span><h2>Focus di oggi</h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body focus-body">
+            <input type="text" class="focus-input" id="focusInput" placeholder="Qual è il tuo obiettivo #1 oggi?" autocomplete="off" />
+            <div class="focus-display" id="focusDisplay"><span class="focus-empty">Scrivi il tuo focus e premi Invio ✨</span></div>
+            <div class="focus-actions"><button class="focus-check" id="focusCheck">☐</button><button class="focus-clear" id="focusClear">✕</button></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- TOOLS ROW -->
-    <div class="tools-row">
-      <div class="widget widget-todo" id="widgetTodo" role="region" aria-labelledby="todoTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">✅</span>
-          <h2 id="todoTitle">Todo</h2>
-        </div>
-        <div class="widget-body todo-body" id="todoBody">
-          <form class="todo-form" id="todoForm">
-            <input type="text" class="todo-input" id="todoInput" placeholder="Aggiungi un task..." autocomplete="off" />
-            <button type="submit" class="todo-submit">+</button>
-          </form>
-          <ul class="todo-list" id="todoList"></ul>
-        </div>
-      </div>
-
-      <div class="widget widget-notes" id="widgetNotes" role="region" aria-labelledby="notesTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">📝</span>
-          <h2 id="notesTitle">Note</h2>
-        </div>
-        <div class="widget-body notes-body" id="notesBody">
-          <form class="notes-form" id="notesForm">
-            <input type="text" class="notes-input" id="notesInput" placeholder="Scrivi una nota..." autocomplete="off" />
-            <button type="submit" class="notes-submit">+</button>
-          </form>
-          <ul class="notes-list" id="notesList"></ul>
-        </div>
-      </div>
-
-      <div class="widget widget-bookmarks" id="widgetBookmarks" role="region" aria-labelledby="bookmarksTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">🔖</span>
-          <h2 id="bookmarksTitle">Bookmarks</h2>
-        </div>
-        <div class="widget-body bookmarks-body" id="bookmarksBody">
-          <form class="bookmarks-form" id="bookmarksForm">
-            <input type="text" class="bookmarks-input" id="bookmarkName" placeholder="Nome..." autocomplete="off" />
-            <input type="text" class="bookmarks-input" id="bookmarkUrl" placeholder="URL..." autocomplete="off" />
-            <button type="submit" class="bookmarks-submit">+</button>
-          </form>
-          <ul class="bookmarks-list" id="bookmarksList"></ul>
-        </div>
-      </div>
-
-      <div class="widget widget-timer" id="widgetTimer" role="region" aria-labelledby="timerTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">⏱️</span>
-          <h2 id="timerTitle">Timer Pomodoro</h2>
-        </div>
-        <div class="widget-body timer-body" id="timerBody">
-          <div class="timer-display" id="timerDisplay">25:00</div>
-          <div class="timer-controls">
-            <button class="timer-btn" id="timerStart">▶️</button>
-            <button class="timer-btn" id="timerPause">⏸️</button>
-            <button class="timer-btn" id="timerReset">🔄</button>
+      <!-- Todo -->
+      <div class="grid-stack-item" gs-id="todo" gs-w="4" gs-h="5" gs-x="4" gs-y="5">
+        <div class="grid-stack-item-content widget widget-todo" id="widgetTodo">
+          <div class="widget-header"><span class="widget-icon">✅</span><h2>Todo <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="todoCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body todo-body" id="todoBody">
+            <form class="todo-form" id="todoForm"><input type="text" class="todo-input" id="todoInput" placeholder="Aggiungi un task..." autocomplete="off" /><button type="submit" class="todo-submit">+</button></form>
+            <ul class="todo-list" id="todoList"></ul>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- INFO ROW -->
-    <div class="info-row">
-      <div class="widget widget-calendar" id="widgetCalendar" role="region" aria-labelledby="calendarTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">📅</span>
-          <h2 id="calendarTitle">Calendario</h2>
-        </div>
-        <div class="widget-body calendar-body" id="calendarBody">
-          <div class="calendar-header" id="calendarHeader"></div>
-          <div class="calendar-grid" id="calendarGrid"></div>
+      <!-- News -->
+      <div class="grid-stack-item" gs-id="news" gs-w="4" gs-h="5" gs-x="8" gs-y="5">
+        <div class="grid-stack-item-content widget widget-news" id="widgetNews">
+          <div class="widget-header"><span class="widget-icon">📰</span><h2>Briefing</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="news">↻</button></div>
+          <div class="widget-body news-body" id="newsBody"><div class="news-list" id="newsList"><div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div></div></div>
         </div>
       </div>
 
-      <div class="widget widget-network" id="widgetNetwork" role="region" aria-labelledby="networkTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">🌐</span>
-          <h2 id="networkTitle">Rete</h2>
-          <button class="widget-refresh" data-widget="network" aria-label="Aggiorna rete">↻</button>
-        </div>
-        <div class="widget-body network-body" id="networkBody">
-          <div class="network-info" id="networkInfo"></div>
-        </div>
-      </div>
-
-      <div class="widget widget-storage" id="widgetStorage" role="region" aria-labelledby="storageTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">💾</span>
-          <h2 id="storageTitle">Storage</h2>
-          <button class="widget-refresh" data-widget="storage" aria-label="Aggiorna storage">↻</button>
-        </div>
-        <div class="widget-body storage-body" id="storageBody">
-          <div class="storage-info" id="storageInfo"></div>
+      <!-- Notes -->
+      <div class="grid-stack-item" gs-id="notes" gs-w="4" gs-h="4" gs-x="0" gs-y="9">
+        <div class="grid-stack-item-content widget widget-notes" id="widgetNotes">
+          <div class="widget-header"><span class="widget-icon">📝</span><h2>Note veloci <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="notesCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body notes-body" id="notesBody">
+            <form class="notes-form" id="notesForm"><input type="text" class="notes-input" id="notesInput" placeholder="Scrivi una nota..." autocomplete="off" /><button type="submit" class="notes-submit">+</button></form>
+            <ul class="notes-list" id="notesList"></ul>
+          </div>
         </div>
       </div>
 
-      <div class="widget widget-services" id="widgetServices" role="region" aria-labelledby="servicesTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">⚙️</span>
-          <h2 id="servicesTitle">Servizi</h2>
-          <button class="widget-refresh" data-widget="services" aria-label="Aggiorna servizi">↻</button>
-        </div>
-        <div class="widget-body services-body" id="servicesBody">
-          <div class="services-list" id="servicesList"></div>
-        </div>
-      </div>
-
-      <div class="widget widget-github" id="widgetGithub" role="region" aria-labelledby="githubTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">🐙</span>
-          <h2 id="githubTitle">GitHub</h2>
-          <button class="widget-refresh" data-widget="github" aria-label="Aggiorna GitHub">↻</button>
-        </div>
-        <div class="widget-body github-body" id="githubBody">
-          <div class="github-user" id="githubUser"></div>
-          <div class="github-repos" id="githubRepos"></div>
+      <!-- Bookmarks -->
+      <div class="grid-stack-item" gs-id="bookmarks" gs-w="4" gs-h="4" gs-x="4" gs-y="9">
+        <div class="grid-stack-item-content widget widget-bookmarks" id="widgetBookmarks">
+          <div class="widget-header"><span class="widget-icon">🔖</span><h2>Bookmarks <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="bookmarksCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body bookmarks-body" id="bookmarksBody">
+            <form class="bookmarks-form" id="bookmarksForm"><input type="text" class="bookmarks-input" id="bookmarkName" placeholder="Nome..." autocomplete="off" /><input type="text" class="bookmarks-input" id="bookmarkUrl" placeholder="URL..." autocomplete="off" /><button type="submit" class="bookmarks-submit">+</button></form>
+            <ul class="bookmarks-list" id="bookmarksList"></ul>
+          </div>
         </div>
       </div>
 
-      <div class="widget widget-crypto" id="widgetCrypto" role="region" aria-labelledby="cryptoTitle">
-        <div class="widget-header">
-          <span class="widget-icon" aria-hidden="true">₿</span>
-          <h2 id="cryptoTitle">Crypto</h2>
-          <button class="widget-refresh" data-widget="crypto" aria-label="Aggiorna crypto">↻</button>
-        </div>
-        <div class="widget-body crypto-body" id="cryptoBody">
-          <div class="crypto-list" id="cryptoList"></div>
+      <!-- Snippets -->
+      <div class="grid-stack-item" gs-id="snippets" gs-w="4" gs-h="4" gs-x="8" gs-y="9">
+        <div class="grid-stack-item-content widget widget-snippets" id="widgetSnippets">
+          <div class="widget-header"><span class="widget-icon">📋</span><h2>CLI Snippets</h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body snippets-body" id="snippetsBody">
+            <form class="snippets-form" id="snippetsForm"><input type="text" class="snippets-input" id="snippetTitle" placeholder="Titolo..." autocomplete="off" /><input type="text" class="snippets-input" id="snippetCommand" placeholder="Comando..." autocomplete="off" /><button type="submit" class="snippets-submit">+</button></form>
+            <div class="snippets-list" id="snippetsList"></div>
+          </div>
         </div>
       </div>
+
+      <!-- Calendar -->
+      <div class="grid-stack-item" gs-id="calendar" gs-w="3" gs-h="4" gs-x="0" gs-y="13">
+        <div class="grid-stack-item-content widget widget-calendar" id="widgetCalendar">
+          <div class="widget-header"><span class="widget-icon">📅</span><h2>Calendario</h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body calendar-body" id="calendarBody"><div class="calendar-header" id="calendarHeader"></div><div class="calendar-grid" id="calendarGrid"></div></div>
+        </div>
+      </div>
+
+      <!-- Network -->
+      <div class="grid-stack-item" gs-id="network" gs-w="3" gs-h="4" gs-x="3" gs-y="13">
+        <div class="grid-stack-item-content widget widget-network" id="widgetNetwork">
+          <div class="widget-header"><span class="widget-icon">🌐</span><h2>Rete</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="network">↻</button></div>
+          <div class="widget-body network-body" id="networkBody"><div class="network-info" id="networkInfo"></div></div>
+        </div>
+      </div>
+
+      <!-- Storage -->
+      <div class="grid-stack-item" gs-id="storage" gs-w="3" gs-h="4" gs-x="6" gs-y="13">
+        <div class="grid-stack-item-content widget widget-storage" id="widgetStorage">
+          <div class="widget-header"><span class="widget-icon">💾</span><h2>Storage</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="storage">↻</button></div>
+          <div class="widget-body storage-body" id="storageBody"><div class="storage-info" id="storageInfo"></div></div>
+        </div>
+      </div>
+
+      <!-- Services -->
+      <div class="grid-stack-item" gs-id="services" gs-w="3" gs-h="4" gs-x="9" gs-y="13">
+        <div class="grid-stack-item-content widget widget-services" id="widgetServices">
+          <div class="widget-header"><span class="widget-icon">⚙️</span><h2>Servizi</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="services">↻</button></div>
+          <div class="widget-body services-body" id="servicesBody"><div class="services-list" id="servicesList"></div></div>
+        </div>
+      </div>
+
+      <!-- GitHub -->
+      <div class="grid-stack-item" gs-id="github" gs-w="4" gs-h="4" gs-x="0" gs-y="17">
+        <div class="grid-stack-item-content widget widget-github" id="widgetGithub">
+          <div class="widget-header"><span class="widget-icon">🐙</span><h2>GitHub</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="github">↻</button></div>
+          <div class="widget-body github-body" id="githubBody"><div class="github-user" id="githubUser"></div><div class="github-repos" id="githubRepos"></div></div>
+        </div>
+      </div>
+
+      <!-- Crypto -->
+      <div class="grid-stack-item" gs-id="crypto" gs-w="4" gs-h="4" gs-x="4" gs-y="17">
+        <div class="grid-stack-item-content widget widget-crypto" id="widgetCrypto">
+          <div class="widget-header"><span class="widget-icon">₿</span><h2>Crypto</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="crypto">↻</button></div>
+          <div class="widget-body crypto-body" id="cryptoBody"><div class="crypto-list" id="cryptoList"></div></div>
+        </div>
+      </div>
+
+      <!-- Timer -->
+      <div class="grid-stack-item" gs-id="timer" gs-w="4" gs-h="4" gs-x="8" gs-y="17">
+        <div class="grid-stack-item-content widget widget-timer" id="widgetTimer">
+          <div class="widget-header"><span class="widget-icon">⏱️</span><h2>Pomodoro</h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-body timer-body" id="timerBody"><div class="timer-display" id="timerDisplay">25:00</div><div class="timer-controls"><button class="timer-btn" id="timerStart">▶️</button><button class="timer-btn" id="timerPause">⏸️</button><button class="timer-btn" id="timerReset">🔄</button></div></div>
+        </div>
+      </div>
+
     </div>
 
     <footer class="footer" role="contentinfo">
-      <p>DevMonitor v2.1 &mdash; <span id="footerYear">2026</span> &mdash; <a href="https://github.com/Fioru12/devdash" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+      <p>MoMo v3.0 &mdash; Morning Monitor &mdash; <span id="footerYear">2026</span> • Trascina i widget con ⋮⋮ • Ridimensiona dagli angoli • <button class="footer-reset" id="resetLayoutBtn">Ripristina layout</button></p>
     </footer>
   </div>
 
-  <!-- Shortcut hint -->
-  <div class="shortcut-hint" id="shortcutHint" role="dialog" aria-label="Lista scorciatoie da tastiera" aria-hidden="true">
+  <div class="shortcut-hint" id="shortcutHint" role="dialog" aria-label="Scorciatoie" aria-hidden="true">
     <h4>⌨️ Shortcut</h4>
+    <div class="shortcut-row"><kbd>G</kbd><span>Modifica griglia</span></div>
     <div class="shortcut-row"><kbd>R</kbd><span>Refresh tutto</span></div>
-    <div class="shortcut-row"><kbd>D</kbd><span>Cambia tema</span></div>
-    <div class="shortcut-row"><kbd>C</kbd><span>Colore accent</span></div>
-    <div class="shortcut-row"><kbd>?</kbd><span>Nascondi</span></div>
+    <div class="shortcut-row"><kbd>D</kbd><span>Tema</span></div>
+    <div class="shortcut-row"><kbd>C</kbd><span>Colore</span></div>
+    <div class="shortcut-row"><kbd>Ctrl+K</kbd><span>Command Palette</span></div>
   </div>
 
+  <div class="cmd-palette-overlay" id="cmdPaletteOverlay" aria-hidden="true">
+    <div class="cmd-palette" role="dialog" aria-modal="true">
+      <div class="cmd-palette-search-box"><span class="cmd-palette-icon">🔍</span><input type="text" id="cmdPaletteInput" placeholder="Cerca o esegui un comando..." autocomplete="off" /><span class="cmd-palette-esc">ESC</span></div>
+      <div class="cmd-palette-results" id="cmdPaletteResults">
+        <div class="cmd-palette-item" data-action="theme">🌙 Alterna Tema</div>
+        <div class="cmd-palette-item" data-action="refresh">🔄 Aggiorna tutto</div>
+        <div class="cmd-palette-item" data-action="grid">◧ Attiva/Disattiva modifica griglia</div>
+        <div class="cmd-palette-item" data-action="export-todos">📥 Esporta Todo CSV</div>
+        <div class="cmd-palette-item" data-action="export-notes">📥 Esporta Note CSV</div>
+        <div class="cmd-palette-item" data-action="export-bookmarks">📥 Esporta Bookmarks CSV</div>
+        <div class="cmd-palette-item" data-action="export-system">📥 Esporta Sistema CSV</div>
+        <div class="cmd-palette-item" data-action="reset-layout">↺ Ripristina layout griglia</div>
+        <div class="cmd-palette-item" data-action="new-todo">✅ Nuovo Todo</div>
+        <div class="cmd-palette-item" data-action="focus">🎯 Modifica Focus</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widget Manager Overlay -->
+  <div class="widget-manager-overlay" id="widgetManagerOverlay" aria-hidden="true">
+    <div class="widget-manager" role="dialog" aria-modal="true" aria-labelledby="wmTitle">
+      <div class="wm-header">
+        <h3 id="wmTitle">👁️ Gestisci widget</h3>
+        <p class="wm-subtitle">Attiva solo ciò che usi al mattino. Sposta le tabelle come vuoi con ◧</p>
+        <button class="wm-close" id="wmClose">✕</button>
+      </div>
+      <div class="wm-section">
+        <h4 class="wm-label">Sfondo</h4>
+        <div class="wallpaper-row" id="wallpaperRow">
+          <button class="wallpaper-opt active" data-wall="aurora" style="background: radial-gradient(120px 80px at 30% 30%, #007aff 40%, #8b5cf6 70%)">Aurora</button>
+          <button class="wallpaper-opt" data-wall="ocean" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4 50%, #14b8a6)">Ocean</button>
+          <button class="wallpaper-opt" data-wall="dawn" style="background: linear-gradient(135deg, #f59e0b, #ec4899 50%, #8b5cf6)">Dawn</button>
+          <button class="wallpaper-opt" data-wall="midnight" style="background: linear-gradient(135deg, #0f172a, #1e1b4b)">Midnight</button>
+          <button class="wallpaper-opt" data-wall="image" style="background: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80') center/cover">4K 🏔️</button>
+        </div>
+      </div>
+      <div class="wm-grid" id="wmGrid"></div>
+      <div class="wm-footer">
+        <button class="wm-btn" id="wmShowAll">Mostra tutti</button>
+        <button class="wm-btn primary" id="wmDone">Fatto</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copiato ✓</div>
   <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

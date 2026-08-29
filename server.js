@@ -1,259 +1,534 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const os = require('os');
+const si = require('systeminformation');
+const { WebSocketServer } = require('ws');
+const pkg = require('./package.json');
+
+const dbService = require('./data/db');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+
+const PORT = process.env.PORT || 3100;
+
+// Initialize Database & Data Directory
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+dbService.initDB().catch((err) => console.error('DB Init Error:', err));
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+        connectSrc: ["'self'", 'https:'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  })
+);
 app.use(compression());
 app.use(express.json());
 
-// Rate limiting
+// Rate Limiting (applied to /api/ endpoints only)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Troppe richieste, riprova più tardi'
+  max: 300,
+  message: { error: 'Troppe richieste, riprova più tardi' },
 });
-app.use(limiter);
-// ==================== WebSocket ====================
-const { WebSocketServer } = require('ws');
-const wss = new WebSocketServer({ port: 3002 });
-const clients = new Set();
-wss.on('connection', (ws) => {
-    clients.add(ws);
-    ws.on('close', () => clients.delete(ws));
-});
-function broadcast(data) {
-    for (const client of clients) {
-        if (client.readyState === 1) client.send(JSON.stringify(data));
-    }
-}
-setInterval(async () => {
-    try {
-        const r = await fetch('http://localhost:'+PORT+'/api/system');
-        broadcast({ type: 'system', data: await r.json() });
-    } catch(e) {}
-}, 5000);
+app.use('/api/', limiter);
 
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== Health Check ====================
+// ==================== In-Memory Cache ====================
+const cacheStore = new Map();
+
+function getCache(key) {
+  const item = cacheStore.get(key);
+  if (!item) return null;
+  if (Date.now() > item.expiresAt) {
+    cacheStore.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setCache(key, data, ttlMs) {
+  cacheStore.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+// ==================== WebSocket Server ====================
+const clients = new Set();
+let shutdownTimer = null;
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  if (shutdownTimer) {
+    clearTimeout(shutdownTimer);
+    shutdownTimer = null;
+  }
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    if (clients.size === 0) {
+      shutdownTimer = setTimeout(() => {
+        if (clients.size === 0) {
+          console.log('Tutte le finestre chiuse. Spegnimento server MoMo...');
+          process.exit(0);
+        }
+      }, 2000);
+    }
+  });
+
+  // Immediate update on connect
+  getSystemMetrics().then((data) => {
+    if (ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'system', data }));
+    }
+  });
+});
+
+function broadcast(data) {
+  for (const client of clients) {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify(data));
+    }
+  }
+}
+
+// Periodic broadcast of system metrics (no local HTTP loopback fetch)
+setInterval(async () => {
+  if (clients.size > 0) {
+    const data = await getSystemMetrics();
+    broadcast({ type: 'system', data });
+  }
+}, 3000);
+
+// ==================== System Metrics Helper ====================
+async function getSystemMetrics() {
+  try {
+    const [cpuLoad, mem, osInfo] = await Promise.all([
+      si.currentLoad(),
+      si.mem(),
+      si.osInfo(),
+    ]);
+
+    const totalMem = mem.total || os.totalmem();
+    const usedMem = mem.active || mem.used || (totalMem - (mem.free || os.freemem()));
+    const freeMem = totalMem - usedMem;
+
+    return {
+      hostname: osInfo.hostname || os.hostname(),
+      platform: osInfo.platform || os.platform(),
+      arch: osInfo.arch || os.arch(),
+      distro: osInfo.distro || '',
+      cpu: {
+        model: os.cpus()[0]?.model || 'N/A',
+        usage: Math.round(cpuLoad.currentLoad || 0),
+        cores: os.cpus().length,
+      },
+      memory: {
+        total: formatBytes(totalMem),
+        used: formatBytes(usedMem),
+        free: formatBytes(freeMem),
+        percent: Math.round((usedMem / totalMem) * 100),
+      },
+      uptime: formatUptime(os.uptime()),
+      loadAvg: os.loadavg().map((v) => v.toFixed(2)),
+    };
+  } catch {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const cpus = os.cpus();
+    let totalIdle = 0;
+    let totalTick = 0;
+
+    cpus.forEach((cpu) => {
+      for (const type in cpu.times) {
+        totalTick += cpu.times[type];
+      }
+      totalIdle += cpu.times.idle;
+    });
+
+    const cpuUsage = Math.round((1 - totalIdle / totalTick) * 100);
+
+    return {
+      hostname: os.hostname(),
+      platform: os.platform(),
+      arch: os.arch(),
+      cpu: {
+        model: cpus[0]?.model || 'N/A',
+        usage: cpuUsage,
+        cores: cpus.length,
+      },
+      memory: {
+        total: formatBytes(totalMem),
+        used: formatBytes(usedMem),
+        free: formatBytes(freeMem),
+        percent: Math.round((usedMem / totalMem) * 100),
+      },
+      uptime: formatUptime(os.uptime()),
+      loadAvg: os.loadavg().map((v) => v.toFixed(2)),
+    };
+  }
+}
+
+// ==================== API Endpoints ====================
+
+// --- Health Check ---
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    version: '2.1.0',
+    version: pkg.version,
   });
 });
 
-// ==================== API ====================
+// --- System ---
+app.get('/api/system', async (req, res) => {
+  const metrics = await getSystemMetrics();
+  res.json(metrics);
+});
 
-// --- Meteo ---
+// --- Weather (wttr.in) ---
 const WEATHER_API = 'https://wttr.in';
+
+async function getWeatherData(city = '') {
+  const normalizedCity = city.trim();
+  const cacheKey = `weather_${normalizedCity.toLowerCase()}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  const url = normalizedCity
+    ? `${WEATHER_API}/${encodeURIComponent(normalizedCity)}?format=j1`
+    : `${WEATHER_API}?format=j1`;
+
+  const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  const data = await response.json();
+
+  if (data.error) {
+    return { error: 'Città non trovata' };
+  }
+
+  const current = data.current_condition?.[0];
+  const location = data.nearest_area?.[0]?.areaName?.[0]?.value || 'Sconosciuta';
+
+  const forecast = (data.weather || []).slice(0, 3).map((day) => ({
+    date: day.date,
+    tempMax: day.maxtempC,
+    tempMin: day.mintempC,
+    desc: day.hourly?.[0]?.weatherDesc?.[0]?.value || '',
+    icon: day.hourly?.[0]?.weatherIconUrl?.[0]?.value || '',
+  }));
+
+  const astronomy = data.weather?.[0]?.astronomy?.[0] || {};
+  const hourly = (data.weather?.[0]?.hourly || []).slice(0, 8).map((h) => ({
+    time: h.time.padStart(4, '0'),
+    temp: h.tempC,
+    chanceRain: h.chanceofrain || '0',
+    desc: h.weatherDesc?.[0]?.value || '',
+  }));
+
+  const result = {
+    city: location,
+    temp: current?.temp_C || 'N/A',
+    feelsLike: current?.FeelsLikeC || 'N/A',
+    humidity: current?.humidity || 'N/A',
+    windSpeed: current?.windspeedKmph || 'N/A',
+    desc: current?.weatherDesc?.[0]?.value || 'N/A',
+    icon: current?.weatherIconUrl?.[0]?.value || '',
+    sunrise: astronomy.sunrise || '06:42',
+    sunset: astronomy.sunset || '20:15',
+    hourly,
+    forecast,
+  };
+
+  setCache(cacheKey, result, 5 * 60 * 1000); // 5 min cache
+  return result;
+}
 
 app.get('/api/weather', async (req, res) => {
   try {
-    const city = req.query.city || '';
-    const url = city
-      ? `${WEATHER_API}/${encodeURIComponent(city)}?format=j1`
-      : `${WEATHER_API}?format=j1`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.error) {
-      return res.json({ error: 'Città non trovata' });
-    }
-
-    const current = data.current_condition?.[0];
-    const location = data.nearest_area?.[0]?.areaName?.[0]?.value || 'Sconosciuta';
-
-    // Previsioni 3 giorni
-    const forecast = (data.weather || []).slice(0, 3).map((day) => ({
-      date: day.date,
-      tempMax: day.maxtempC,
-      tempMin: day.mintempC,
-      desc: day.hourly?.[0]?.weatherDesc?.[0]?.value || '',
-      icon: day.hourly?.[0]?.weatherIconUrl?.[0]?.value || '',
-    }));
-
-    res.json({
-      city: location,
-      temp: current?.temp_C || 'N/A',
-      feelsLike: current?.FeelsLikeC || 'N/A',
-      humidity: current?.humidity || 'N/A',
-      windSpeed: current?.windspeedKmph || 'N/A',
-      desc: current?.weatherDesc?.[0]?.value || 'N/A',
-      icon: current?.weatherIconUrl?.[0]?.value || '',
-      forecast,
-    });
+    const result = await getWeatherData(req.query.city || '');
+    res.json(result);
   } catch (err) {
     res.json({ error: 'Impossibile recuperare il meteo' });
   }
 });
 
-// --- Notizie (HackerNews) ---
+// --- News (HackerNews) ---
+async function getNewsData() {
+  const cached = getCache('news_top');
+  if (cached) return cached;
+
+  const idsRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json', {
+    signal: AbortSignal.timeout(5000),
+  });
+  const ids = await idsRes.json();
+  const topIds = ids.slice(0, 15);
+
+  const stories = await Promise.all(
+    topIds.map(async (id) => {
+      try {
+        const storyRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        const story = await storyRes.json();
+        return {
+          id: story.id,
+          title: story.title,
+          url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
+          score: story.score || 0,
+          author: story.by || 'anonymous',
+          time: story.time || 0,
+          comments: story.descendants || 0,
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const validStories = stories.filter((s) => s !== null);
+  setCache('news_top', validStories, 5 * 60 * 1000); // 5 min cache
+  return validStories;
+}
+
 app.get('/api/news', async (req, res) => {
   try {
-    const idsRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
-    const ids = await idsRes.json();
-    const topIds = ids.slice(0, 15);
-
-    const stories = await Promise.all(
-      topIds.map(async (id) => {
-        try {
-          const storyRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-          const story = await storyRes.json();
-          return {
-            id: story.id,
-            title: story.title,
-            url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
-            score: story.score || 0,
-            author: story.by || 'anonymous',
-            time: story.time || 0,
-            comments: story.descendants || 0,
-          };
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    const validStories = stories.filter((s) => s !== null);
-    res.json(validStories);
+    const stories = await getNewsData();
+    res.json(stories);
   } catch (err) {
     res.json([]);
   }
 });
 
-// --- Citazione ---
+// --- Briefing mattutino ---
+app.get('/api/briefing', async (req, res) => {
+  try {
+    const cached = getCache('briefing');
+    if (cached) return res.json(cached);
+
+    const [weatherRes, newsRes, todos, quoteRes] = await Promise.allSettled([
+      getWeatherData().catch(() => null),
+      getNewsData().catch(() => []),
+      dbService.getTodos().catch(() => []),
+      fetch(QUOTES_API, { signal: AbortSignal.timeout(2000) }).then((r) => r.json()).catch(() => null),
+    ]);
+
+    const weather = weatherRes.status === 'fulfilled' ? weatherRes.value : null;
+    const news = newsRes.status === 'fulfilled' && Array.isArray(newsRes.value) ? newsRes.value.slice(0, 3) : [];
+    const todosList = todos.status === 'fulfilled' ? todos.value : [];
+    const quote = quoteRes.status === 'fulfilled' && quoteRes.value ? quoteRes.value : null;
+
+    const pending = todosList.filter((t) => !t.done).length;
+    const bullets = [
+      weather && !weather.error ? `🌤️ ${weather.city}: ${weather.temp}°C, ${weather.desc} — tramonto ${weather.sunset}` : '🌤️ Meteo non disponibile',
+      news.length ? `📰 Top: "${news[0].title.slice(0, 70)}..." (${news[0].score} punti)` : '📰 Nessuna news',
+      pending ? `✅ Hai ${pending} task aperti — focus su "${todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo'}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
+    ];
+
+    const result = {
+      bullets,
+      weather: weather ? { city: weather.city, temp: weather.temp, desc: weather.desc } : null,
+      news,
+      quote,
+      pending,
+      generatedAt: new Date().toISOString(),
+    };
+    setCache('briefing', result, 5 * 60 * 1000);
+    res.json(result);
+  } catch (e) {
+    res.json({ bullets: ['☀️ Buongiorno! Inizia con il tuo Focus #1'], pending: 0, generatedAt: new Date().toISOString() });
+  }
+});
+
+// --- Quote ---
 const QUOTES_API = 'https://api.quotable.io/random';
 
 app.get('/api/quote', async (req, res) => {
   try {
-    const response = await fetch(QUOTES_API);
+    const cached = getCache('quote_random');
+    if (cached) return res.json(cached);
+
+    const response = await fetch(QUOTES_API, { signal: AbortSignal.timeout(3000) });
     const data = await response.json();
-    res.json({
-      content: data.content || 'La vita è ciò che accende mentre fai altri piani.',
+    const result = {
+      content: data.content || 'La vita è ciò che accade mentre fai altri piani.',
       author: data.author || 'John Lennon',
-    });
+    };
+    setCache('quote_random', result, 10 * 60 * 1000); // 10 min cache
+    res.json(result);
   } catch {
     res.json({
-      content: 'La vita è ciò che accende mentre fai altri piani.',
+      content: 'La vita è ciò che accade mentre fai altri piani.',
       author: 'John Lennon',
     });
   }
 });
 
-// --- Monitor Sistema ---
-app.get('/api/system', (req, res) => {
-  const totalMem = os.totalmem();
-  const freeMem = os.freemem();
-  const usedMem = totalMem - freeMem;
-
-  const cpus = os.cpus();
-  let totalIdle = 0;
-  let totalTick = 0;
-
-  cpus.forEach((cpu) => {
-    for (const type in cpu.times) {
-      totalTick += cpu.times[type];
-    }
-    totalIdle += cpu.times.idle;
-  });
-
-  const cpuUsage = Math.round((1 - totalIdle / totalTick) * 100);
-
-  res.json({
-    hostname: os.hostname(),
-    platform: os.platform(),
-    arch: os.arch(),
-    cpu: {
-      model: cpus[0]?.model || 'N/A',
-      usage: cpuUsage,
-      cores: cpus.length,
-    },
-    memory: {
-      total: formatBytes(totalMem),
-      used: formatBytes(usedMem),
-      free: formatBytes(freeMem),
-      percent: Math.round((usedMem / totalMem) * 100),
-    },
-    uptime: formatUptime(os.uptime()),
-    loadAvg: os.loadavg().map((v) => v.toFixed(2)),
-  });
-});
-
-// --- Todo List ---
-const TODOS_FILE = path.join(__dirname, 'data', 'todos.json');
-
-function readTodos() {
+// --- Todos ---
+app.get('/api/todos', async (req, res) => {
   try {
-    if (!fs.existsSync(TODOS_FILE)) return [];
-    const data = fs.readFileSync(TODOS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
+    const todos = await dbService.getTodos();
+    res.json(todos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-}
-
-function writeTodos(todos) {
-  fs.writeFileSync(TODOS_FILE, JSON.stringify(todos, null, 2));
-}
-
-app.get('/api/todos', (req, res) => {
-  res.json(readTodos());
 });
 
-app.post('/api/todos', (req, res) => {
-  const { text } = req.body;
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ error: 'Testo richiesto' });
+app.post('/api/todos', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'Testo richiesto' });
+    }
+    const todo = await dbService.addTodo(text);
+    res.status(201).json(todo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  const todos = readTodos();
-  const todo = {
-    id: Date.now().toString(),
-    text: text.trim(),
-    done: false,
-    createdAt: new Date().toISOString(),
-  };
-  todos.push(todo);
-  writeTodos(todos);
-  res.status(201).json(todo);
 });
 
-app.put('/api/todos/:id', (req, res) => {
-  const todos = readTodos();
-  const idx = todos.findIndex((t) => t.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Todo non trovato' });
-
-  if (req.body.done !== undefined) todos[idx].done = req.body.done;
-  if (req.body.text) todos[idx].text = req.body.text.trim();
-
-  writeTodos(todos);
-  res.json(todos[idx]);
-});
-
-app.delete('/api/todos/:id', (req, res) => {
-  let todos = readTodos();
-  const before = todos.length;
-  todos = todos.filter((t) => t.id !== req.params.id);
-  if (todos.length === before) {
-    return res.status(404).json({ error: 'Todo non trovato' });
+app.put('/api/todos/:id', async (req, res) => {
+  try {
+    const todo = await dbService.updateTodo(req.params.id, req.body);
+    if (!todo) return res.status(404).json({ error: 'Todo non trovato' });
+    res.json(todo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  writeTodos(todos);
-  res.json({ ok: true });
 });
 
-// --- Time (mondiale) ---
+app.delete('/api/todos/:id', async (req, res) => {
+  try {
+    const deleted = await dbService.deleteTodo(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Todo non trovato' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Notes ---
+app.get('/api/notes', async (req, res) => {
+  try {
+    const notes = await dbService.getNotes();
+    res.json(notes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notes', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'Testo richiesto' });
+    }
+    const note = await dbService.addNote(text);
+    res.status(201).json(note);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/notes/:id', async (req, res) => {
+  try {
+    const deleted = await dbService.deleteNote(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Nota non trovata' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Bookmarks ---
+app.get('/api/bookmarks', async (req, res) => {
+  try {
+    const bookmarks = await dbService.getBookmarks();
+    res.json(bookmarks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/bookmarks', async (req, res) => {
+  try {
+    const { name, url } = req.body;
+    if (!name || !url) {
+      return res.status(400).json({ error: 'Nome e URL richiesti' });
+    }
+    const bookmark = await dbService.addBookmark(name, url);
+    res.status(201).json(bookmark);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/bookmarks/:id', async (req, res) => {
+  try {
+    const deleted = await dbService.deleteBookmark(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Bookmark non trovato' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Snippets ---
+app.get('/api/snippets', async (req, res) => {
+  try {
+    const snippets = await dbService.getSnippets();
+    res.json(snippets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/snippets', async (req, res) => {
+  try {
+    const { title, command, category } = req.body;
+    if (!title || !command) {
+      return res.status(400).json({ error: 'Titolo e comando richiesti' });
+    }
+    const snippet = await dbService.addSnippet(title, command, category);
+    res.status(201).json(snippet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/snippets/:id', async (req, res) => {
+  try {
+    const deleted = await dbService.deleteSnippet(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Snippet non trovato' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Timezones ---
 app.get('/api/time', (req, res) => {
   const timezones = [
     { label: 'Roma', zone: 'Europe/Rome' },
@@ -284,252 +559,190 @@ app.get('/api/time', (req, res) => {
   res.json(times);
 });
 
-// ==================== Storage ====================
-app.get('/api/storage', (req, res) => {
+// --- Storage ---
+app.get('/api/storage', async (req, res) => {
   try {
-    const disks = fs.readdirSync('/dev').filter(f => f.startsWith('sd') || f.startsWith('nvme') || f.startsWith('disk'));
-    const storage = disks.map(disk => {
-      try {
-        const stats = fs.statSync(`/dev/${disk}`);
-        return {
-          device: disk,
-          size: formatBytes(stats.size),
-        };
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    const cached = getCache('storage_data');
+    if (cached) return res.json(cached);
 
-    // Get disk usage
-    const usage = [];
-    try {
-      const df = require('child_process').execSync('df -h').toString();
-      const lines = df.split('\n').slice(1);
-      lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 6 && parts[0].includes('/dev/')) {
-          usage.push({
-            device: parts[0],
-            mount: parts[5],
-            total: parts[1],
-            used: parts[2],
-            free: parts[3],
-            percent: parts[4],
-          });
-        }
-      });
-    } catch {}
+    const fsSizes = await si.fsSize();
+    const usage = (fsSizes || []).map((fs) => ({
+      device: fs.fs || fs.mount,
+      mount: fs.mount,
+      type: fs.type,
+      total: formatBytes(fs.size),
+      used: formatBytes(fs.used),
+      free: formatBytes(fs.available || fs.size - fs.used),
+      percent: Math.round(fs.use || 0) + '%',
+    }));
 
-    res.json({ disks: storage, usage });
+    const result = {
+      disks: usage.map((u) => ({ device: u.device, size: u.total })),
+      usage,
+    };
+
+    setCache('storage_data', result, 10000);
+    res.json(result);
   } catch {
     res.json({ disks: [], usage: [] });
   }
 });
 
-// ==================== Network ====================
-app.get('/api/network', (req, res) => {
+// --- Network ---
+app.get('/api/network', async (req, res) => {
   try {
-    const interfaces = os.networkInterfaces();
-    const netStats = Object.entries(interfaces).map(([name, addrs]) => {
-      const ipv4 = addrs.find(a => a.family === 'IPv4');
-      return {
-        name,
-        ip: ipv4 ? ipv4.address : 'N/A',
-        mac: addrs[0]?.mac || 'N/A',
-      };
-    });
+    const cached = getCache('network_data');
+    if (cached) return res.json(cached);
 
-    // Get network stats
-    let rxBytes = 0, txBytes = 0;
-    try {
-      const stats = fs.readFileSync('/sys/class/net/statistics/rx_bytes', 'utf-8');
-      rxBytes = parseInt(stats.trim()) || 0;
-    } catch {}
-    try {
-      const stats = fs.readFileSync('/sys/class/net/statistics/tx_bytes', 'utf-8');
-      txBytes = parseInt(stats.trim()) || 0;
-    } catch {}
+    const [ifaces, stats] = await Promise.all([si.networkInterfaces(), si.networkStats()]);
 
-    res.json({
-      interfaces: netStats,
-      rxBytes: formatBytes(rxBytes),
-      txBytes: formatBytes(txBytes),
-    });
+    const ifaceArray = Array.isArray(ifaces) ? ifaces : ifaces ? [ifaces] : [];
+    const interfacesList = ifaceArray.map((iface) => ({
+      name: iface.iface,
+      ip: iface.ip4 || 'N/A',
+      mac: iface.mac || 'N/A',
+      state: iface.operstate || 'active',
+    }));
+
+    let totalRx = 0;
+    let totalTx = 0;
+    if (Array.isArray(stats)) {
+      stats.forEach((s) => {
+        totalRx += s.rx_bytes || 0;
+        totalTx += s.tx_bytes || 0;
+      });
+    }
+
+    const result = {
+      interfaces: interfacesList,
+      rxBytes: formatBytes(totalRx),
+      txBytes: formatBytes(totalTx),
+    };
+
+    setCache('network_data', result, 5000);
+    res.json(result);
   } catch {
     res.json({ interfaces: [], rxBytes: '0 B', txBytes: '0 B' });
   }
 });
 
-// ==================== Services ====================
-app.get('/api/services', (req, res) => {
+// --- Services ---
+app.get('/api/services', async (req, res) => {
   try {
-    const services = ['nginx', 'apache2', 'mysql', 'postgresql', 'redis', 'docker', 'ssh', 'cron'];
-    const status = services.map(svc => {
+    const defaultServices = ['nginx', 'apache2', 'mysql', 'postgresql', 'redis', 'docker', 'ssh', 'cron'];
+    const serviceList = defaultServices.map((svc) => {
       try {
-        const result = require('child_process').execSync(`systemctl is-active ${svc} 2>&1`).toString().trim();
+        const result = require('child_process')
+          .execSync(`systemctl is-active ${svc} 2>&1`)
+          .toString()
+          .trim();
         return { name: svc, status: result === 'active' ? 'running' : 'stopped' };
       } catch {
         return { name: svc, status: 'not-found' };
       }
     });
-    res.json(status);
+    res.json(serviceList);
   } catch {
     res.json([]);
   }
 });
 
-// ==================== Notes ====================
-const NOTES_FILE = path.join(__dirname, 'data', 'notes.json');
-
-function readNotes() {
+// --- Docker Containers ---
+app.get('/api/docker', async (req, res) => {
   try {
-    if (!fs.existsSync(NOTES_FILE)) return [];
-    const data = fs.readFileSync(NOTES_FILE, 'utf-8');
-    return JSON.parse(data);
+    const cached = getCache('docker_containers');
+    if (cached) return res.json(cached);
+
+    const containers = await si.dockerContainers();
+    const result = (containers || []).map((c) => ({
+      id: c.id ? c.id.substring(0, 12) : '',
+      name: c.name,
+      image: c.image,
+      state: c.state,
+      status: c.status,
+    }));
+
+    setCache('docker_containers', result, 10000);
+    res.json(result);
   } catch {
-    return [];
+    res.json([]);
   }
-}
-
-function writeNotes(notes) {
-  fs.writeFileSync(NOTES_FILE, JSON.stringify(notes, null, 2));
-}
-
-app.get('/api/notes', (req, res) => {
-  res.json(readNotes());
 });
 
-app.post('/api/notes', (req, res) => {
-  const { text } = req.body;
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ error: 'Testo richiesto' });
-  }
-
-  const notes = readNotes();
-  const note = {
-    id: Date.now().toString(),
-    text: text.trim(),
-    createdAt: new Date().toISOString(),
-  };
-  notes.unshift(note);
-  writeNotes(notes);
-  res.status(201).json(note);
-});
-
-app.delete('/api/notes/:id', (req, res) => {
-  let notes = readNotes();
-  const before = notes.length;
-  notes = notes.filter(n => n.id !== req.params.id);
-  if (notes.length === before) {
-    return res.status(404).json({ error: 'Nota non trovata' });
-  }
-  writeNotes(notes);
-  res.json({ ok: true });
-});
-
-// ==================== Bookmarks ====================
-const BOOKMARKS_FILE = path.join(__dirname, 'data', 'bookmarks.json');
-
-function readBookmarks() {
-  try {
-    if (!fs.existsSync(BOOKMARKS_FILE)) return [];
-    const data = fs.readFileSync(BOOKMARKS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-function writeBookmarks(bookmarks) {
-  fs.writeFileSync(BOOKMARKS_FILE, JSON.stringify(bookmarks, null, 2));
-}
-
-app.get('/api/bookmarks', (req, res) => {
-  res.json(readBookmarks());
-});
-
-app.post('/api/bookmarks', (req, res) => {
-  const { name, url } = req.body;
-  if (!name || !url) {
-    return res.status(400).json({ error: 'Nome e URL richiesti' });
-  }
-
-  const bookmarks = readBookmarks();
-  const bookmark = {
-    id: Date.now().toString(),
-    name: name.trim(),
-    url: url.trim(),
-    createdAt: new Date().toISOString(),
-  };
-  bookmarks.push(bookmark);
-  writeBookmarks(bookmarks);
-  res.status(201).json(bookmark);
-});
-
-app.delete('/api/bookmarks/:id', (req, res) => {
-  let bookmarks = readBookmarks();
-  const before = bookmarks.length;
-  bookmarks = bookmarks.filter(b => b.id !== req.params.id);
-  if (bookmarks.length === before) {
-    return res.status(404).json({ error: 'Bookmark non trovato' });
-  }
-  writeBookmarks(bookmarks);
-  res.json({ ok: true });
-});
-
-// ==================== Timer/Pomodoro ====================
+// --- Timer / Pomodoro ---
 app.get('/api/timer', (req, res) => {
   res.json({ mode: 'pomodoro', duration: 25 * 60 });
 });
 
-// ==================== Crypto ====================
+// --- Crypto ---
 app.get('/api/crypto', async (req, res) => {
   try {
+    const cached = getCache('crypto_prices');
+    if (cached) return res.json(cached);
+
     const coins = ['bitcoin', 'ethereum', 'solana'];
-    const promises = coins.map(coin =>
-      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd&include_24hr_change=true`)
-        .then(r => r.json())
+    const promises = coins.map((coin) =>
+      fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd&include_24hr_change=true`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+        .then((r) => r.json())
         .catch(() => null)
     );
 
     const results = await Promise.all(promises);
-    const crypto = coins.map((coin, i) => {
-      const data = results[i];
-      if (!data || !data[coin]) return null;
-      return {
-        name: coin.charAt(0).toUpperCase() + coin.slice(1),
-        price: data[coin].usd,
-        change: data[coin].usd_24h_change || 0,
-      };
-    }).filter(Boolean);
+    const crypto = coins
+      .map((coin, i) => {
+        const data = results[i];
+        if (!data || !data[coin]) return null;
+        return {
+          name: coin.charAt(0).toUpperCase() + coin.slice(1),
+          price: data[coin].usd,
+          change: data[coin].usd_24h_change || 0,
+        };
+      })
+      .filter(Boolean);
 
+    setCache('crypto_prices', crypto, 2 * 60 * 1000); // 2 min cache
     res.json(crypto);
   } catch (err) {
-    console.error('Errore API crypto:', err);
     res.json([]);
   }
 });
 
-// ==================== GitHub ====================
+// --- GitHub ---
 app.get('/api/github', async (req, res) => {
   try {
-    const username = req.query.username || 'Fioru12';
-    const response = await fetch(`https://api.github.com/users/${username}`);
-    const data = await response.json();
+    const username = (req.query.username || 'Fioru12').trim();
+    const cacheKey = `github_${username.toLowerCase()}`;
+    const cached = getCache(cacheKey);
+    if (cached) return res.json(cached);
 
-    const reposResponse = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=5`);
-    const repos = await reposResponse.json();
+    const userRes = await fetch(`https://api.github.com/users/${username}`, {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'MoMo-App' },
+    });
+    const data = await userRes.json();
 
-    res.json({
+    const reposRes = await fetch(
+      `https://api.github.com/users/${username}/repos?sort=updated&per_page=5`,
+      {
+        signal: AbortSignal.timeout(5000),
+        headers: { 'User-Agent': 'MoMo-App' },
+      }
+    );
+    const repos = await reposRes.json();
+
+    const result = {
       user: {
         login: data.login,
-        name: data.name,
+        name: data.name || data.login,
         avatar: data.avatar_url,
-        repos: data.public_repos,
-        followers: data.followers,
-        following: data.following,
+        repos: data.public_repos || 0,
+        followers: data.followers || 0,
+        following: data.following || 0,
       },
-      repos: repos.map(r => ({
+      repos: (Array.isArray(repos) ? repos : []).map((r) => ({
         name: r.name,
         description: r.description,
         stars: r.stargazers_count,
@@ -537,13 +750,16 @@ app.get('/api/github', async (req, res) => {
         language: r.language,
         updated: r.updated_at,
       })),
-    });
+    };
+
+    setCache(cacheKey, result, 10 * 60 * 1000); // 10 min cache
+    res.json(result);
   } catch {
     res.json({ user: null, repos: [] });
   }
 });
 
-// ==================== Calendar ====================
+// --- Calendar ---
 app.get('/api/calendar', (req, res) => {
   const now = new Date();
   const year = now.getFullYear();
@@ -551,7 +767,6 @@ app.get('/api/calendar', (req, res) => {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
-  const startingDay = firstDay.getDay();
 
   const days = [];
   for (let i = 1; i <= daysInMonth; i++) {
@@ -571,46 +786,79 @@ app.get('/api/calendar', (req, res) => {
   });
 });
 
-// ==================== SPA fallback (MUST BE LAST) ====================
+// --- Export CSV ---
+app.get('/api/export/:type', async (req, res) => {
+  const type = req.params.type;
+  try {
+    let items = [];
+    if (type === 'todos') items = await dbService.getTodos();
+    else if (type === 'notes') items = await dbService.getNotes();
+    else if (type === 'bookmarks') items = await dbService.getBookmarks();
+    else if (type === 'snippets') items = await dbService.getSnippets();
+
+    if (['todos', 'notes', 'bookmarks', 'snippets'].includes(type)) {
+      if (!items.length) {
+        return res.status(400).json({ error: 'Nessun elemento da esportare' });
+      }
+      const headers = Object.keys(items[0]);
+      const csvRows = [headers.join(',')];
+      for (const item of items) {
+        const row = headers.map((h) => {
+          const val = item[h] !== undefined && item[h] !== null ? String(item[h]) : '';
+          return `"${val.replace(/"/g, '""')}"`;
+        });
+        csvRows.push(row.join(','));
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.attachment(`${type}.csv`);
+      return res.send(csvRows.join('\n'));
+    }
+
+    if (type === 'system') {
+      const sysData = await getSystemMetrics();
+      const csvLines = [
+        'Metric,Value',
+        `Hostname,"${sysData.hostname}"`,
+        `Platform,"${sysData.platform}"`,
+        `Arch,"${sysData.arch}"`,
+        `CPU Usage,"${sysData.cpu.usage}%"`,
+        `CPU Cores,"${sysData.cpu.cores}"`,
+        `RAM Used,"${sysData.memory.used}"`,
+        `RAM Total,"${sysData.memory.total}"`,
+        `RAM Percent,"${sysData.memory.percent}%"`,
+        `Uptime,"${sysData.uptime}"`,
+      ];
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.attachment('system.csv');
+      return res.send(csvLines.join('\n'));
+    }
+
+    res.status(400).json({ error: 'Tipo di export non valido' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- WebSocket Status ---
+app.get('/api/ws-status', (req, res) => {
+  res.json({ connected: clients.size });
+});
+
+// ==================== SPA Fallback (MUST BE LAST) ====================
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ==================== Start ====================
-
-// ==================== Export CSV ====================
-app.get('/api/export/:type', async (req, res) => {
-    const type = req.params.type;
-    try {
-        if (type === 'todos' || type === 'notes') {
-            const file = path.join(__dirname, 'data', type + '.json');
-            const items = JSON.parse(fs.readFileSync(file, 'utf8'));
-            const csv = items.map(i => Object.values(i).join(',')).join('\n');
-            res.setHeader('Content-Type', 'text/csv');
-            res.attachment(type + '.csv');
-            res.send(csv);
-        } else if (type === 'system') {
-            const r = await fetch('http://localhost:'+PORT+'/api/system');
-            const s = await r.json();
-            const csv = 'metric,value\n'+Object.entries(s).map(e=>e.join(',')).join('\n');
-            res.setHeader('Content-Type', 'text/csv');
-            res.attachment('system.csv');
-            res.send(csv);
-        }
-    } catch(e) { res.status(500).json({error: e.message}); }
-});
-app.get('/api/ws-status', (req, res) => {
-    res.json({ connected: clients.size });
-});
-
-app.listen(PORT, () => {
-  console.log(`✨ DevMonitor avviato su porta ${PORT}`);
+// ==================== Start Server ====================
+server.listen(PORT, () => {
+  console.log(`✨ MoMo avviato su porta ${PORT}`);
   console.log(`🌐 Apri http://localhost:${PORT} nel browser`);
 });
 
 // ==================== Utilities ====================
 function formatBytes(bytes) {
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  if (!bytes || isNaN(bytes)) return '0 B';
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   let val = bytes;
   while (val >= 1024 && i < sizes.length - 1) {
@@ -628,5 +876,5 @@ function formatUptime(seconds) {
   if (days) parts.push(`${days}g`);
   if (hours) parts.push(`${hours}h`);
   parts.push(`${mins}m`);
-  return parts.join(' ');
+  return parts.join(' ') || '0m';
 }

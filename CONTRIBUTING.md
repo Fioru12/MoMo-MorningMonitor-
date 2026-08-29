@@ -1,14 +1,14 @@
-# Contributi a DevMonitor
+# Contributi a MoMo — Morning Monitor
 
-Grazie per il tuo interesse nel contribuire a DevMonitor! 🎉
+Grazie per il tuo interesse nel contribuire a MoMo! 🎉
 
 ## 🚀 Come Contribuire
 
 ### 1. Fork del Progetto
 Fai fork del progetto e clonalo localmente:
 ```bash
-git clone https://github.com/tuo-username/devdash.git
-cd devdash
+git clone https://github.com/tuo-username/MoMo-MorningMonitor-.git
+cd MoMo-MorningMonitor-
 ```
 
 ### 2. Crea un Branch
@@ -70,7 +70,7 @@ Usa il formato [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## 🐛 Segnalare Bug
 
-Apri una [Issue](https://github.com/Fioru12/devdash/issues) con:
+Apri una [Issue](https://github.com/Fioru12/MoMo-MorningMonitor-/issues) con:
 1. Descrizione del bug
 2. Passi per riprodurlo
 3. Comportamento atteso vs attuale
@@ -81,7 +81,7 @@ Apri una [Issue](https://github.com/Fioru12/devdash/issues) con:
 
 ## 💡 Proporre Feature
 
-Apri una [Issue](https://github.com/Fioru12/devdash/issues) con:
+Apri una [Issue](https://github.com/Fioru12/MoMo-MorningMonitor-/issues) con:
 1. Descrizione della feature
 2. Motivazione/use case
 3. Mockup o descrizione UI (se applicabile)
@@ -91,7 +91,7 @@ Apri una [Issue](https://github.com/Fioru12/devdash/issues) con:
 ## 📝 Struttura del Progetto
 
 ```
-devdash/
+MoMo-MorningMonitor-/
 ├── server.js          # API Express
 ├── public/
 │   ├── index.html     # HTML + Landing page

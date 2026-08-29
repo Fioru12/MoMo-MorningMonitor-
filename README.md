@@ -1,193 +1,172 @@
-# ⎔ DevMonitor
+# ☀️ MoMo — Morning Monitor
 
 <div align="center">
 
-![Node.js](https://img.shields.io/badge/Node.js-22.22-339933?logo=node.js&style=flat-square)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&style=flat-square)
 ![Express](https://img.shields.io/badge/Express-4.21-000?logo=express&style=flat-square)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
-![Status](https://img.shields.io/badge/status-production-green?style=flat-square)
 ![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square)
 ![WebSocket](https://img.shields.io/badge/WebSocket-real--time-4FC08D?style=flat-square)
-![Chart.js](https://img.shields.io/badge/Chart.js-graphics-FF6384?style=flat-square)
-![Export](https://img.shields.io/badge/Export-CSV%2FJSON-success?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=flat-square)
 
-**A modern, responsive personal dashboard for developers and sysadmins**  
-Real-time system monitoring, weather forecasts, tech news, and task management in one place.
+**Il tuo mattino, perfettamente organizzato.**
+Meteo, focus del giorno, briefing, sistema e tanto altro in un'unica dashboard personale, personalizzabile e installabile come app.
 
-[🚀 Live Demo](http://YOUR_SERVER_IP:3002) • [✨ Features](#-features) • [📦 Installation](#-installation) • [🛠️ Tech Stack](#️-tech-stack) • [📸 Screenshots](#-screenshots)
+[✨ Funzionalità](#-funzionalità) • [📦 Installazione](#-installazione) • [🛠️ Stack Tecnico](#️-stack-tecnico) • [📈 API](#-api)
 
 </div>
 
 ---
 
-## ✨ Features
+## ✨ Funzionalità
 
-### 🌤️ Weather Widget
-- Real-time temperature with dynamic color gradient
-- Feels like, humidity, wind speed
-- 3-day forecast
-- Automatic geolocation
+### 🌅 Mattino
+- Meteo in tempo reale con temperatura percepita, umidità, vento e previsioni a 3 giorni
+- Alba/tramonto e geolocalizzazione automatica
+- Briefing giornaliero con citazione motivazionale e notizie tech in evidenza
+- Focus del giorno — l'unico obiettivo su cui concentrarsi
+- News ticker live dalle notizie tech più rilevanti
 
-### 💻 System Monitor
-- CPU & RAM usage with animated progress bars
-- Real-time sparkline charts for historical data
-- Hostname, platform, uptime
-- Load average monitoring
+### 🧰 Produttività
+- Todo list con completamento, animazioni e persistenza
+- Note veloci
+- Bookmarks con link rapidi
+- CLI Snippets — comandi da terminale salvati e pronti all'uso
+- Calendario mensile con indicatori dei task
+- Pomodoro timer integrato
 
-### 📰 Tech News
-- Live feed from HackerNews API
-- Animated news ticker
-- Scores, comments count, author
-- Auto-refresh every 2 minutes
+### 💻 Monitor di sistema
+- CPU & RAM in tempo reale via WebSocket, con sparkline storico
+- Rete, storage e servizi in esecuzione
+- Integrazione GitHub (profilo e repository) e prezzi crypto live
 
-### ✅ Todo List
-- Add, complete, and delete tasks
-- Smooth animations
-- Persistent storage via JSON file
-- Keyboard shortcuts support
+### 🎨 Personalizzazione
+- Griglia widget drag & drop e ridimensionabile (layout salvato in locale)
+- Profili rapidi (Mattina / Lavoro / Sera) per adattare la vista al momento della giornata
+- Selettore colore accent e tema chiaro/scuro
+- Installabile come PWA, con supporto offline via service worker
 
-### 🛡️ Security
-- Helmet.js for HTTP headers security
-- Rate limiting protection
-- Input sanitization
-- Compression enabled
-
-### 🔌 Real-time Updates
-- WebSocket connection for live system metrics
-- Auto-refresh every 5 seconds
-- No page reload needed
-
-### 📊 Data Export
-- Export todos and notes as CSV
-- Export system metrics as CSV
-- One-click download
-
-### 📈 Charts & Analytics
-- CPU usage history chart
-- RAM usage history chart
-- Real-time data visualization with Chart.js
-- Helmet.js for HTTP headers security
-- Rate limiting protection
-- Input sanitization
-- Compression enabled
+### 🛡️ Sicurezza & affidabilità
+- Helmet.js per gli header HTTP, rate limiting e compressione
+- Persistenza su SQLite con migrazione automatica dai vecchi dati JSON
+- Export dati (todo, note, metriche di sistema) in CSV
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Stack Tecnico
 
-| Technology | Purpose |
+| Tecnologia | Ruolo |
 |---|---|
-| **Node.js 22** | Runtime environment |
-| **Express 4.21** | Web framework |
-| **Docker** | Containerization & deployment |
-| **Helmet.js** | Security headers |
-| **express-rate-limit** | API rate limiting |
-| **compression** | Gzip compression |
-| **HackerNews API** | Tech news feed |
-| **Open-Meteo API** | Weather data (free, no key needed) |
+| **Node.js 18+** | Runtime |
+| **Express 4** | Web server & API |
+| **WebSocket (ws)** | Metriche di sistema in tempo reale |
+| **SQLite** | Persistenza dati |
+| **systeminformation** | Raccolta metriche hardware/OS |
+| **GridStack.js** | Griglia widget drag & drop |
+| **Chart.js** | Sparkline CPU/RAM |
+| **Helmet / express-rate-limit / compression** | Sicurezza e performance |
+| **Docker** | Containerizzazione |
+| **wttr.in** | Dati meteo (gratuito, nessuna API key) |
 
 ---
 
-## 📦 Installation
+## 📦 Installazione
 
-### Prerequisites
-- Node.js 22+ or Docker
-- Modern web browser
+### Prerequisiti
+- Node.js 18+ oppure Docker
 
-### Option 1: Docker (Recommended)
+### Opzione 1: Docker
 ```bash
+docker build -t momo .
 docker run -d \
-  --name devdash \
-  -p 3002:3002 \
+  --name momo \
+  -p 3100:3100 \
   -v $(pwd)/data:/app/data \
-  ghcr.io/fioru12/devdash:latest
+  momo
 ```
 
-### Option 2: Docker Compose
-```yaml
-services:
-  devdash:
-    build: .
-    container_name: devdash
-    ports:
-      - "3002:3002"
-    environment:
-      - NODE_ENV=production
-      - PORT=3002
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-```
-
-### Option 3: Manual
+### Opzione 2: Docker Compose
 ```bash
-git clone https://github.com/Fioru12/devdash.git
-cd devdash
-npm install --production
+docker compose up -d
+```
+
+### Opzione 3: Manuale
+```bash
+git clone https://github.com/Fioru12/MoMo-MorningMonitor-.git
+cd MoMo-MorningMonitor-
+npm install
 npm start
 ```
 
+Apri [http://localhost:3100](http://localhost:3100) nel browser. Su Windows puoi anche usare `start-momo.bat` per avviare il server con un doppio click.
+
 ---
 
-## 🔧 Configuration
+## 🔧 Configurazione
 
-| Variable | Default | Description |
+| Variabile | Default | Descrizione |
 |---|---|---|
-| `PORT` | `3002` | Server port |
-| `NODE_ENV` | `development` | Environment mode |
-| `WS_PORT` | `3002` | WebSocket server port |
+| `PORT` | `3100` | Porta del server (HTTP + WebSocket) |
+| `NODE_ENV` | `production` | Ambiente di esecuzione |
+
+Copia `.env.example` in `.env` per personalizzare. Non sono richieste API key: meteo, news e crypto usano fonti pubbliche gratuite.
 
 ### WebSocket
-Connect to `ws://localhost:3002` for real-time system updates.
 ```javascript
-const ws = new WebSocket('ws://localhost:3002');
+const ws = new WebSocket('ws://localhost:3100');
 ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.type === 'system') {
-        console.log('CPU:', data.data.cpu, 'RAM:', data.data.ram);
-    }
+  const { type, data } = JSON.parse(event.data);
+  if (type === 'system') console.log('CPU:', data.cpu.usage, 'RAM:', data.memory.percent);
 };
 ```
 
-No API keys required! Weather data uses free Open-Meteo API.
-
 ---
 
-## 📸 Screenshots
-
-> *Coming soon - screenshots will be added here*
-
----
-
-## 🏗️ Architecture
+## 🏗️ Architettura
 
 ```
-devdash/
-├── server.js          # Express server + API routes
-├── public/            # Static frontend files
-│   ├── index.html     # Main dashboard UI
-│   ├── css/           # Stylesheets
-│   └── js/            # Client-side JavaScript
-├── data/              # Persistent data storage
-├── Dockerfile         # Multi-stage Docker build
-├── docker-compose.yml # Orchestration config
-└── tests/             # Test suite
+MoMo-MorningMonitor-/
+├── server.js              # Server Express + API + WebSocket
+├── public/
+│   ├── index.html         # UI della dashboard
+│   ├── style.css          # Stili
+│   ├── script.js          # Logica frontend, widget e griglia
+│   ├── sw.js              # Service worker (PWA/offline)
+│   └── manifest.json      # Manifest PWA
+├── data/
+│   ├── db.js              # Layer SQLite + migrazione da JSON
+│   └── *.json             # Dati legacy (migrati al primo avvio)
+├── Dockerfile
+├── docker-compose.yml
+└── tests/                 # Test suite API
 ```
 
 ---
 
-## 📈 API Endpoints
+## 📈 API
 
-| Endpoint | Description |
+| Endpoint | Descrizione |
 |---|---|
 | `GET /api/health` | Health check |
-| `GET /api/system` | System metrics (CPU, RAM, uptime) |
-| `GET /api/weather` | Weather forecast data |
-| `GET /api/news` | Latest tech news from HackerNews |
-| `GET /api/todos` | Get all todos |
-| `POST /api/todos` | Add a new todo |
-| `DELETE /api/todos/:id` | Delete a todo |
+| `GET /api/system` | Metriche di sistema (CPU, RAM, uptime) |
+| `GET /api/weather` | Meteo e previsioni |
+| `GET /api/news` | Notizie tech |
+| `GET /api/briefing` | Briefing giornaliero |
+| `GET /api/quote` | Citazione motivazionale |
+| `GET/POST/PUT/DELETE /api/todos` | Gestione todo |
+| `GET/POST/DELETE /api/notes` | Note veloci |
+| `GET/POST/DELETE /api/bookmarks` | Bookmarks |
+| `GET/POST/DELETE /api/snippets` | CLI snippets |
+| `GET /api/calendar` | Calendario mensile |
+| `GET /api/network` | Interfacce di rete |
+| `GET /api/storage` | Dischi e spazio disponibile |
+| `GET /api/services` | Stato servizi locali |
+| `GET /api/docker` | Container Docker in esecuzione |
+| `GET /api/github` | Profilo e repository GitHub |
+| `GET /api/crypto` | Prezzi crypto live |
+| `GET /api/timer` | Stato pomodoro |
+| `GET /api/export/:type` | Export dati in CSV |
 
 ---
 
@@ -199,24 +178,24 @@ npm test
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contribuire
 
-Contributions are welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+Le contribuzioni sono benvenute! Leggi [CONTRIBUTING.md](CONTRIBUTING.md) per le linee guida.
 
 ---
 
-## 👨‍💻 Author
+## 📄 Licenza
 
-**Fioru12** - [GitHub Profile](https://github.com/Fioru12)
+Distribuito sotto licenza MIT — vedi [LICENSE](LICENSE) per i dettagli.
+
+---
+
+## 👨‍💻 Autore
+
+**Nicolò Fiorucci** — [@Fioru12](https://github.com/Fioru12)
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for developers and sysadmins</sub>
+  <sub>Fatto con ☀️ per iniziare bene la giornata</sub>
 </div>
