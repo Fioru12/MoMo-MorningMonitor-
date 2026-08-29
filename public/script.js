@@ -389,10 +389,10 @@ let newsData = [];
 
 async function loadNews() {
   try {
-    const stories = await fetchAPI('/api/news');
+    const stories = await fetchAPI('/api/worldnews');
     newsData = stories;
     const list = document.getElementById('newsList');
-    
+
     if (stories.length === 0) {
       list.innerHTML = emptyState('📰', 'Nessuna notizia disponibile');
       return;
@@ -402,15 +402,10 @@ async function loadNews() {
       const timeAgo = getTimeAgo(story.time);
       return `
         <a href="${story.url}" target="_blank" class="news-item" style="animation-delay: ${i * 0.05}s">
-          <div class="news-score">
-            <span>${story.score}</span>
-            <span class="news-score-label">punti</span>
-          </div>
           <div class="news-content">
             <div class="news-title">${escapeHtml(story.title)}</div>
             <div class="news-meta">
-              <span>👤 ${story.author}</span>
-              <span>💬 ${story.comments}</span>
+              <span>📰 ${escapeHtml(story.source)}</span>
               <span>🕐 ${timeAgo}</span>
             </div>
           </div>
@@ -433,7 +428,9 @@ function updateTicker(stories) {
   }
   // Create a long string with all titles separated by bullets
   const text = stories.map(s => s.title).join('  •  ') + '  •  ';
-  track.innerHTML = `<span class="ticker-text">${escapeHtml(text)}</span>`;
+  // Velocità di lettura costante indipendentemente dalla lunghezza del testo
+  const duration = Math.max(45, Math.round(text.length / 6));
+  track.innerHTML = `<span class="ticker-text" style="animation-duration: ${duration}s">${escapeHtml(text)}</span>`;
 }
 
 function getTimeAgo(timestamp) {
@@ -687,6 +684,7 @@ document.querySelectorAll('.widget-refresh').forEach(btn => {
       case 'services': loadServices(); break;
       case 'github': loadGitHub(); break;
       case 'crypto': loadCrypto(); break;
+      case 'markets': loadMarkets(); break;
     }
   });
 });
@@ -1093,6 +1091,33 @@ async function loadCrypto() {
     }).join('');
   } catch {
     document.getElementById('cryptoList').innerHTML = emptyState('⚠️', 'Errore caricamento crypto');
+  }
+}
+
+// ==================== WIDGET: BORSA ====================
+async function loadMarkets() {
+  try {
+    const markets = await fetchAPI('/api/markets');
+    const list = document.getElementById('marketsList');
+
+    if (markets.length === 0) {
+      list.innerHTML = emptyState('📈', 'Nessun dato di borsa');
+      return;
+    }
+
+    list.innerHTML = markets.map(m => {
+      const changeClass = m.change >= 0 ? 'positive' : 'negative';
+      const changeSymbol = m.change >= 0 ? '▲' : '▼';
+      return `
+        <div class="crypto-item">
+          <span class="crypto-name">${m.name}</span>
+          <span class="crypto-price">${m.price.toLocaleString('it-IT', { maximumFractionDigits: 2 })}</span>
+          <span class="crypto-change ${changeClass}">${changeSymbol} ${Math.abs(m.change).toFixed(2)}%</span>
+        </div>
+      `;
+    }).join('');
+  } catch {
+    document.getElementById('marketsList').innerHTML = emptyState('⚠️', 'Errore caricamento borsa');
   }
 }
 
@@ -1597,7 +1622,7 @@ const WIDGET_DEFS = [
   { id: 'system', label: '💻 Sistema', desc: 'CPU/RAM live' },
   { id: 'focus', label: '🎯 Focus', desc: 'Obiettivo del giorno' },
   { id: 'todo', label: '✅ Todo', desc: 'Task giornalieri' },
-  { id: 'news', label: '📰 Briefing', desc: 'HackerNews' },
+  { id: 'news', label: '📰 Briefing', desc: 'Notizie del mondo' },
   { id: 'notes', label: '📝 Note', desc: 'Note veloci' },
   { id: 'bookmarks', label: '🔖 Bookmarks', desc: 'Link rapidi' },
   { id: 'snippets', label: '📋 Snippets', desc: 'Comandi CLI' },
@@ -1607,6 +1632,7 @@ const WIDGET_DEFS = [
   { id: 'services', label: '⚙️ Servizi', desc: 'Systemctl' },
   { id: 'github', label: '🐙 GitHub', desc: 'Repo & profilo' },
   { id: 'crypto', label: '₿ Crypto', desc: 'BTC/ETH/SOL' },
+  { id: 'markets', label: '📈 Borsa', desc: 'S&P 500, Nasdaq, FTSE MIB' },
   { id: 'timer', label: '⏱️ Pomodoro', desc: '25 min timer' },
 ];
 
@@ -1670,7 +1696,7 @@ function initWidgetManager() {
 
   // Profili Mattina/Lavoro/Sera
   const PROFILES = {
-    morning: [],
+    morning: ['system','notes','bookmarks','snippets','calendar','network','storage','services','github','crypto','timer'],
     work: ['calendar','crypto','timer'],
     evening: ['services','network','storage','github'],
   };
@@ -1681,12 +1707,16 @@ function initWidgetManager() {
     localStorage.setItem('momo-profile', name);
     profileBtns.forEach(b=>b.classList.toggle('active', b.dataset.profile===name));
     applyHidden();
+
+    // Meteo occupa tutta la riga se Sistema è nascosto, altrimenti metà
+    const weatherEl = document.querySelector('.grid-stack-item[gs-id="weather"]');
+    if (weatherEl && momoGrid) {
+      try { momoGrid.update(weatherEl, { w: hidden.includes('system') ? 12 : 6 }); } catch {}
+    }
   }
   profileBtns.forEach(b=>b.addEventListener('click', ()=>applyProfile(b.dataset.profile)));
   const savedProfile = localStorage.getItem('momo-profile');
-  if (savedProfile && PROFILES[savedProfile]) {
-    profileBtns.forEach(b=>b.classList.toggle('active', b.dataset.profile===savedProfile));
-  }
+  applyProfile(savedProfile && PROFILES[savedProfile] ? savedProfile : 'morning');
 }
 
 // ==================== INIT ====================
@@ -1721,6 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadServices();
   loadGitHub();
   loadCrypto();
+  loadMarkets();
   updateHeaderWeather();
   updateHeaderClock();
 
@@ -1738,5 +1769,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(loadServices, 10000);
   setInterval(loadGitHub, 300000);
   setInterval(loadCrypto, 60000);
+  setInterval(loadMarkets, 120000);
   setInterval(updateHeaderWeather, 300000);
 });

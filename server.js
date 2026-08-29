@@ -324,6 +324,69 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+// --- World News (Google News RSS, Italia) ---
+function decodeHtmlEntities(str) {
+  return String(str)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function parseRssItems(xml, limit = 12) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(xml)) && items.length < limit) {
+    const block = match[1];
+    const rawTitle = (block.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
+    const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
+    const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '';
+    const source = (block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || '';
+
+    const cleanTitle = decodeHtmlEntities(rawTitle.replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, ''));
+    const cleanSource = decodeHtmlEntities(source);
+    const title = cleanSource && cleanTitle.endsWith(` - ${cleanSource}`)
+      ? cleanTitle.slice(0, -(cleanSource.length + 3))
+      : cleanTitle;
+
+    items.push({
+      title,
+      url: link.trim(),
+      source: cleanSource || 'Google News',
+      time: pubDate ? Math.floor(new Date(pubDate).getTime() / 1000) : Math.floor(Date.now() / 1000),
+    });
+  }
+  return items;
+}
+
+const WORLD_NEWS_RSS = 'https://news.google.com/rss?hl=it&gl=IT&ceid=IT:it';
+
+async function getWorldNewsData() {
+  const cached = getCache('world_news');
+  if (cached) return cached;
+
+  const response = await fetch(WORLD_NEWS_RSS, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(8000),
+  });
+  const xml = await response.text();
+  const items = parseRssItems(xml, 12);
+
+  setCache('world_news', items, 10 * 60 * 1000); // 10 min cache
+  return items;
+}
+
+app.get('/api/worldnews', async (req, res) => {
+  try {
+    const items = await getWorldNewsData();
+    res.json(items);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
 // --- Briefing mattutino ---
 app.get('/api/briefing', async (req, res) => {
   try {
@@ -332,7 +395,7 @@ app.get('/api/briefing', async (req, res) => {
 
     const [weatherRes, newsRes, todos, quoteRes] = await Promise.allSettled([
       getWeatherData().catch(() => null),
-      getNewsData().catch(() => []),
+      getWorldNewsData().catch(() => []),
       dbService.getTodos().catch(() => []),
       fetch(QUOTES_API, { signal: AbortSignal.timeout(2000) }).then((r) => r.json()).catch(() => null),
     ]);
@@ -345,7 +408,7 @@ app.get('/api/briefing', async (req, res) => {
     const pending = todosList.filter((t) => !t.done).length;
     const bullets = [
       weather && !weather.error ? `🌤️ ${weather.city}: ${weather.temp}°C, ${weather.desc} — tramonto ${weather.sunset}` : '🌤️ Meteo non disponibile',
-      news.length ? `📰 Top: "${news[0].title.slice(0, 70)}..." (${news[0].score} punti)` : '📰 Nessuna news',
+      news.length ? `📰 Top: "${news[0].title.slice(0, 70)}" — ${news[0].source}` : '📰 Nessuna news',
       pending ? `✅ Hai ${pending} task aperti — focus su "${todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo'}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
     ];
 
@@ -707,6 +770,46 @@ app.get('/api/crypto', async (req, res) => {
 
     setCache('crypto_prices', crypto, 2 * 60 * 1000); // 2 min cache
     res.json(crypto);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+// --- Borsa (indici principali) ---
+const MARKET_SYMBOLS = [
+  { symbol: '^GSPC', name: 'S&P 500' },
+  { symbol: '^IXIC', name: 'Nasdaq' },
+  { symbol: 'FTSEMIB.MI', name: 'FTSE MIB' },
+];
+
+app.get('/api/markets', async (req, res) => {
+  try {
+    const cached = getCache('markets');
+    if (cached) return res.json(cached);
+
+    const results = await Promise.all(
+      MARKET_SYMBOLS.map(({ symbol, name }) =>
+        fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(5000),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            const meta = data?.chart?.result?.[0]?.meta;
+            if (!meta || typeof meta.regularMarketPrice !== 'number') return null;
+            return {
+              name,
+              price: meta.regularMarketPrice,
+              change: meta.regularMarketChangePercent || 0,
+            };
+          })
+          .catch(() => null)
+      )
+    );
+
+    const markets = results.filter(Boolean);
+    setCache('markets', markets, 5 * 60 * 1000); // 5 min cache
+    res.json(markets);
   } catch (err) {
     res.json([]);
   }
