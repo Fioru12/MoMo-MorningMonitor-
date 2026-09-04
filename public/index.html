@@ -81,8 +81,9 @@
           <div class="header-icon-group">
             <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
             <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
-            <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget">👁️</button>
-            <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)">◧</button>
+            <button class="grid-edit-btn" id="financeViewBtn" title="Mercati (F)" aria-label="Mercati (F)">📊</button>
+            <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget" aria-label="Gestisci widget">👁️</button>
+            <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)" aria-label="Modifica griglia (G)">◧</button>
           </div>
         </div>
       </div>
@@ -108,6 +109,12 @@
         <h2 class="greeting-title" id="greetingTitle">Buongiorno ☀️</h2>
         <p class="greeting-subtitle" id="greetingSubtitle">Pronto per una grande giornata?</p>
         <div class="briefing-bullets" id="briefingBullets"></div>
+        <div class="greeting-focus" id="greetingFocus">
+          <span class="greeting-focus-label">🎯 Focus:</span>
+          <span class="greeting-focus-text" id="greetingFocusText" contenteditable="true" role="textbox" aria-label="Modifica focus del giorno" placeholder="Clicca qui per impostare il tuo focus"></span>
+          <span class="greeting-focus-check" id="greetingFocusCheck" role="button" aria-label="Segna come fatto" tabindex="0">☐</span>
+        </div>
+        <div class="greeting-summary" id="greetingSummary"></div>
       </div>
       <div class="greeting-meta">
         <div class="greeting-quote" id="greetingQuote"><span class="quote-text">Caricamento ispirazione...</span><span class="quote-author"></span></div>
@@ -115,13 +122,13 @@
       </div>
     </div>
 
-    <!-- GRID STACK -->
+    <!-- GRID STACK — Layout hierarchy: Hero > Daily > Capture > Utilities > Finance > Timer -->
     <div class="grid-stack" id="momoGrid">
 
-      <!-- Meteo -->
+      <!-- ROW 1: Hero — Weather + System (highest priority at top) -->
       <div class="grid-stack-item" gs-id="weather" gs-w="6" gs-h="6" gs-x="0" gs-y="0">
         <div class="grid-stack-item-content widget widget-weather" id="widgetWeather">
-          <div class="widget-header"><span class="widget-icon">🌤️</span><h2>Meteo</h2><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="weather">↻</button></div>
+          <div class="widget-header"><span class="widget-icon">🌤️</span><h2>Meteo</h2><span class="widget-timestamp" id="weatherTimestamp"></span><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="weather" aria-label="Aggiorna meteo">↻</button></div>
           <div class="widget-body weather-body" id="weatherBody">
             <div class="weather-main"><span class="weather-temp loading" id="weatherTemp">--°</span><span class="weather-desc" id="weatherDesc">Caricamento...</span></div>
             <div class="weather-details"><div class="weather-detail"><span class="detail-label">Percepita</span><span id="weatherFeels">--°</span></div><div class="weather-detail"><span class="detail-label">Umidità</span><span id="weatherHumidity">--%</span></div><div class="weather-detail"><span class="detail-label">Vento</span><span id="weatherWind">-- km/h</span></div></div>
@@ -133,10 +140,9 @@
         </div>
       </div>
 
-      <!-- Sistema -->
       <div class="grid-stack-item" gs-id="system" gs-w="6" gs-h="6" gs-x="6" gs-y="0">
         <div class="grid-stack-item-content widget widget-system" id="widgetSystem">
-          <div class="widget-header"><span class="widget-icon">💻</span><h2>Sistema</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="system">↻</button></div>
+          <div class="widget-header"><span class="widget-icon">💻</span><h2>Sistema</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="system" aria-label="Aggiorna sistema">↻</button></div>
           <div class="widget-body system-body" id="systemBody">
             <div class="sys-cards">
               <div class="sys-card"><span class="sys-card-icon">⚡</span><span class="sys-card-label">CPU</span><span class="sys-card-value" id="cpuValue">--%</span><div class="sys-bar"><div class="sys-bar-fill cpu-bar" id="cpuBar"></div></div></div>
@@ -148,20 +154,19 @@
         </div>
       </div>
 
-      <!-- Focus del giorno - NEW MORNING WIDGET -->
-      <div class="grid-stack-item" gs-id="focus" gs-w="4" gs-h="4" gs-x="0" gs-y="5">
+      <!-- ROW 2: Daily — Focus + Todo + News -->
+      <div class="grid-stack-item" gs-id="focus" gs-w="4" gs-h="4" gs-x="0" gs-y="6">
         <div class="grid-stack-item-content widget widget-focus" id="widgetFocus">
           <div class="widget-header"><span class="widget-icon">🎯</span><h2>Focus di oggi</h2><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body focus-body">
             <input type="text" class="focus-input" id="focusInput" placeholder="Qual è il tuo obiettivo #1 oggi?" autocomplete="off" />
-            <div class="focus-display" id="focusDisplay"><span class="focus-empty">Scrivi il tuo focus e premi Invio ✨</span></div>
+            <div class="focus-display" id="focusDisplay"><span class="focus-empty">Scrivi il tuo focus e premi Invio</span></div>
             <div class="focus-actions"><button class="focus-check" id="focusCheck">☐</button><button class="focus-clear" id="focusClear">✕</button></div>
           </div>
         </div>
       </div>
 
-      <!-- Todo -->
-      <div class="grid-stack-item" gs-id="todo" gs-w="4" gs-h="5" gs-x="4" gs-y="5">
+      <div class="grid-stack-item" gs-id="todo" gs-w="4" gs-h="4" gs-x="4" gs-y="6">
         <div class="grid-stack-item-content widget widget-todo" id="widgetTodo">
           <div class="widget-header"><span class="widget-icon">✅</span><h2>Todo <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="todoCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body todo-body" id="todoBody">
@@ -171,16 +176,15 @@
         </div>
       </div>
 
-      <!-- News -->
-      <div class="grid-stack-item" gs-id="news" gs-w="4" gs-h="5" gs-x="8" gs-y="5">
+      <div class="grid-stack-item" gs-id="news" gs-w="4" gs-h="4" gs-x="8" gs-y="6">
         <div class="grid-stack-item-content widget widget-news" id="widgetNews">
-          <div class="widget-header"><span class="widget-icon">📰</span><h2>Briefing</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="news">↻</button></div>
+          <div class="widget-header"><span class="widget-icon">📰</span><h2>Briefing</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="news" aria-label="Aggiorna notizie">↻</button></div>
           <div class="widget-body news-body" id="newsBody"><div class="news-list" id="newsList"><div class="news-skeleton"></div><div class="news-skeleton"></div><div class="news-skeleton"></div></div></div>
         </div>
       </div>
 
-      <!-- Notes -->
-      <div class="grid-stack-item" gs-id="notes" gs-w="4" gs-h="4" gs-x="0" gs-y="9">
+      <!-- ROW 3: Capture — Notes + Bookmarks + Snippets -->
+      <div class="grid-stack-item" gs-id="notes" gs-w="4" gs-h="4" gs-x="0" gs-y="10">
         <div class="grid-stack-item-content widget widget-notes" id="widgetNotes">
           <div class="widget-header"><span class="widget-icon">📝</span><h2>Note veloci <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="notesCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body notes-body" id="notesBody">
@@ -190,10 +194,9 @@
         </div>
       </div>
 
-      <!-- Bookmarks -->
-      <div class="grid-stack-item" gs-id="bookmarks" gs-w="4" gs-h="4" gs-x="4" gs-y="9">
+      <div class="grid-stack-item" gs-id="bookmarks" gs-w="4" gs-h="4" gs-x="4" gs-y="10">
         <div class="grid-stack-item-content widget widget-bookmarks" id="widgetBookmarks">
-          <div class="widget-header"><span class="widget-icon">🔖</span><h2>Bookmarks <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="bookmarksCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-header"><span class="widget-icon">🔖</span><h2>Bookmarks <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="bookmarksCount"></span></h2><input type="text" class="widget-search" id="bookmarksSearch" placeholder="Cerca..." autocomplete="off" /><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body bookmarks-body" id="bookmarksBody">
             <form class="bookmarks-form" id="bookmarksForm"><input type="text" class="bookmarks-input" id="bookmarkName" placeholder="Nome..." autocomplete="off" /><input type="text" class="bookmarks-input" id="bookmarkUrl" placeholder="URL..." autocomplete="off" /><button type="submit" class="bookmarks-submit">+</button></form>
             <ul class="bookmarks-list" id="bookmarksList"></ul>
@@ -201,10 +204,9 @@
         </div>
       </div>
 
-      <!-- Snippets -->
-      <div class="grid-stack-item" gs-id="snippets" gs-w="4" gs-h="4" gs-x="8" gs-y="9">
+      <div class="grid-stack-item" gs-id="snippets" gs-w="4" gs-h="4" gs-x="8" gs-y="10">
         <div class="grid-stack-item-content widget widget-snippets" id="widgetSnippets">
-          <div class="widget-header"><span class="widget-icon">📋</span><h2>CLI Snippets</h2><span class="drag-handle">⋮⋮</span></div>
+          <div class="widget-header"><span class="widget-icon">📋</span><h2>CLI Snippets</h2><input type="text" class="widget-search" id="snippetsSearch" placeholder="Cerca..." autocomplete="off" /><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body snippets-body" id="snippetsBody">
             <form class="snippets-form" id="snippetsForm"><input type="text" class="snippets-input" id="snippetTitle" placeholder="Titolo..." autocomplete="off" /><input type="text" class="snippets-input" id="snippetCommand" placeholder="Comando..." autocomplete="off" /><button type="submit" class="snippets-submit">+</button></form>
             <div class="snippets-list" id="snippetsList"></div>
@@ -212,67 +214,77 @@
         </div>
       </div>
 
-      <!-- Calendar -->
-      <div class="grid-stack-item" gs-id="calendar" gs-w="3" gs-h="4" gs-x="0" gs-y="13">
+      <!-- ROW 4: Utilities — Network + Storage + Services -->
+      <div class="grid-stack-item" gs-id="network" gs-w="4" gs-h="4" gs-x="0" gs-y="14">
+        <div class="grid-stack-item-content widget widget-network" id="widgetNetwork">
+          <div class="widget-header"><span class="widget-icon">🌐</span><h2>Rete</h2><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="network" aria-label="Aggiorna rete">↻</button></div>
+          <div class="widget-body network-body" id="networkBody"><div class="network-info" id="networkInfo"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-stack-item" gs-id="storage" gs-w="4" gs-h="4" gs-x="4" gs-y="14">
+        <div class="grid-stack-item-content widget widget-storage" id="widgetStorage">
+          <div class="widget-header"><span class="widget-icon">💾</span><h2>Storage</h2><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="storage" aria-label="Aggiorna storage">↻</button></div>
+          <div class="widget-body storage-body" id="storageBody"><div class="storage-info" id="storageInfo"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-stack-item" gs-id="services" gs-w="4" gs-h="4" gs-x="8" gs-y="14">
+        <div class="grid-stack-item-content widget widget-services" id="widgetServices">
+          <div class="widget-header"><span class="widget-icon">⚙️</span><h2>Servizi</h2><span class="drag-handle" title="Trascina">⋮⋮</span><button class="widget-refresh" data-widget="services" aria-label="Aggiorna servizi">↻</button></div>
+          <div class="widget-body services-body" id="servicesBody"><div class="services-list" id="servicesList"></div></div>
+        </div>
+      </div>
+
+      <!-- ROW 5: Dev + Finance — GitHub (4) + Borsa (4) + ETF (4) -->
+      <div class="grid-stack-item" gs-id="github" gs-w="4" gs-h="4" gs-x="0" gs-y="18">
+        <div class="grid-stack-item-content widget widget-github" id="widgetGithub">
+          <div class="widget-header"><span class="widget-icon">🐙</span><h2>GitHub</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="github" aria-label="Aggiorna GitHub">↻</button></div>
+          <div class="widget-body github-body" id="githubBody"><div class="github-user" id="githubUser"></div><div class="github-repos" id="githubRepos"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-stack-item" gs-id="markets" gs-w="4" gs-h="4" gs-x="4" gs-y="18">
+        <div class="grid-stack-item-content widget widget-markets" id="widgetMarkets">
+          <div class="widget-header"><span class="widget-icon">📈</span><h2>Borsa</h2><span class="widget-timestamp" id="marketsTimestamp"></span><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="markets" aria-label="Aggiorna borsa">↻</button></div>
+          <div class="widget-body crypto-body" id="marketsBody"><div class="crypto-list" id="marketsList"></div></div>
+        </div>
+      </div>
+
+      <div class="grid-stack-item" gs-id="etf" gs-w="4" gs-h="4" gs-x="8" gs-y="18">
+        <div class="grid-stack-item-content widget widget-markets" id="widgetEtf">
+          <div class="widget-header"><span class="widget-icon">📈</span><h2>ETF</h2><span class="widget-timestamp" id="etfTimestamp"></span><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="etf" aria-label="Aggiorna ETF">↻</button></div>
+          <div class="widget-body crypto-body" id="etfBody"><div class="crypto-list" id="etfList"></div></div>
+        </div>
+      </div>
+
+      <!-- ROW 6: Calendar (4) + Crypto (4) + Timer (4) -->
+      <div class="grid-stack-item" gs-id="calendar" gs-w="4" gs-h="4" gs-x="0" gs-y="22">
         <div class="grid-stack-item-content widget widget-calendar" id="widgetCalendar">
           <div class="widget-header"><span class="widget-icon">📅</span><h2>Calendario</h2><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body calendar-body" id="calendarBody"><div class="calendar-header" id="calendarHeader"></div><div class="calendar-grid" id="calendarGrid"></div></div>
         </div>
       </div>
 
-      <!-- Network -->
-      <div class="grid-stack-item" gs-id="network" gs-w="3" gs-h="4" gs-x="3" gs-y="13">
-        <div class="grid-stack-item-content widget widget-network" id="widgetNetwork">
-          <div class="widget-header"><span class="widget-icon">🌐</span><h2>Rete</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="network">↻</button></div>
-          <div class="widget-body network-body" id="networkBody"><div class="network-info" id="networkInfo"></div></div>
-        </div>
-      </div>
-
-      <!-- Storage -->
-      <div class="grid-stack-item" gs-id="storage" gs-w="3" gs-h="4" gs-x="6" gs-y="13">
-        <div class="grid-stack-item-content widget widget-storage" id="widgetStorage">
-          <div class="widget-header"><span class="widget-icon">💾</span><h2>Storage</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="storage">↻</button></div>
-          <div class="widget-body storage-body" id="storageBody"><div class="storage-info" id="storageInfo"></div></div>
-        </div>
-      </div>
-
-      <!-- Services -->
-      <div class="grid-stack-item" gs-id="services" gs-w="3" gs-h="4" gs-x="9" gs-y="13">
-        <div class="grid-stack-item-content widget widget-services" id="widgetServices">
-          <div class="widget-header"><span class="widget-icon">⚙️</span><h2>Servizi</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="services">↻</button></div>
-          <div class="widget-body services-body" id="servicesBody"><div class="services-list" id="servicesList"></div></div>
-        </div>
-      </div>
-
-      <!-- GitHub -->
-      <div class="grid-stack-item" gs-id="github" gs-w="4" gs-h="4" gs-x="0" gs-y="17">
-        <div class="grid-stack-item-content widget widget-github" id="widgetGithub">
-          <div class="widget-header"><span class="widget-icon">🐙</span><h2>GitHub</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="github">↻</button></div>
-          <div class="widget-body github-body" id="githubBody"><div class="github-user" id="githubUser"></div><div class="github-repos" id="githubRepos"></div></div>
-        </div>
-      </div>
-
-      <!-- Crypto -->
-      <div class="grid-stack-item" gs-id="crypto" gs-w="4" gs-h="4" gs-x="4" gs-y="17">
+      <div class="grid-stack-item" gs-id="crypto" gs-w="4" gs-h="4" gs-x="4" gs-y="22">
         <div class="grid-stack-item-content widget widget-crypto" id="widgetCrypto">
-          <div class="widget-header"><span class="widget-icon">₿</span><h2>Crypto</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="crypto">↻</button></div>
+          <div class="widget-header"><span class="widget-icon">₿</span><h2>Crypto</h2><span class="widget-timestamp" id="cryptoTimestamp"></span><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="crypto" aria-label="Aggiorna crypto">↻</button></div>
           <div class="widget-body crypto-body" id="cryptoBody"><div class="crypto-list" id="cryptoList"></div></div>
         </div>
       </div>
 
-      <!-- Borsa -->
-      <div class="grid-stack-item" gs-id="markets" gs-w="4" gs-h="4" gs-x="0" gs-y="21">
-        <div class="grid-stack-item-content widget widget-markets" id="widgetMarkets">
-          <div class="widget-header"><span class="widget-icon">📈</span><h2>Borsa</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" data-widget="markets">↻</button></div>
-          <div class="widget-body crypto-body" id="marketsBody"><div class="crypto-list" id="marketsList"></div></div>
-        </div>
-      </div>
-
-      <!-- Timer -->
-      <div class="grid-stack-item" gs-id="timer" gs-w="4" gs-h="4" gs-x="8" gs-y="17">
+      <div class="grid-stack-item" gs-id="timer" gs-w="4" gs-h="4" gs-x="8" gs-y="22">
         <div class="grid-stack-item-content widget widget-timer" id="widgetTimer">
           <div class="widget-header"><span class="widget-icon">⏱️</span><h2>Pomodoro</h2><span class="drag-handle">⋮⋮</span></div>
-          <div class="widget-body timer-body" id="timerBody"><div class="timer-display" id="timerDisplay">25:00</div><div class="timer-controls"><button class="timer-btn" id="timerStart">▶️</button><button class="timer-btn" id="timerPause">⏸️</button><button class="timer-btn" id="timerReset">🔄</button></div></div>
+          <div class="widget-body timer-body" id="timerBody">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-presets" id="timerPresets">
+              <button class="timer-preset" data-minutes="15">15m</button>
+              <button class="timer-preset active" data-minutes="25">25m</button>
+              <button class="timer-preset" data-minutes="45">45m</button>
+            </div>
+            <div class="timer-controls"><button class="timer-btn" id="timerStart" aria-label="Avvia timer">▶️</button><button class="timer-btn" id="timerPause" aria-label="Pausa timer">⏸️</button><button class="timer-btn" id="timerReset" aria-label="Resetta timer">🔄</button></div>
+          </div>
         </div>
       </div>
 
@@ -325,10 +337,41 @@
           <button class="wallpaper-opt" data-wall="ocean" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4 50%, #14b8a6)">Ocean</button>
           <button class="wallpaper-opt" data-wall="dawn" style="background: linear-gradient(135deg, #f59e0b, #ec4899 50%, #8b5cf6)">Dawn</button>
           <button class="wallpaper-opt" data-wall="midnight" style="background: linear-gradient(135deg, #0f172a, #1e1b4b)">Midnight</button>
-          <button class="wallpaper-opt" data-wall="image" style="background: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80') center/cover">4K 🏔️</button>
+          <button class="wallpaper-opt" data-wall="forest" style="background: linear-gradient(135deg, #166534, #15803d 50%, #059669)">Forest</button>
+          <button class="wallpaper-opt" data-wall="sunset" style="background: linear-gradient(135deg, #fb923c, #f43f5e 50%, #a855f7)">Sunset</button>
+          <button class="wallpaper-opt" data-wall="cosmos" style="background: linear-gradient(135deg, #8b5cf6, #ec4899 50%, #3b82f6)">Cosmos</button>
+          <button class="wallpaper-opt" data-wall="nebula" style="background: linear-gradient(135deg, #ec4899, #a855f7 50%, #f472b6)">Nebula</button>
+          <button class="wallpaper-opt" data-wall="arctic" style="background: linear-gradient(135deg, #38bdf8, #22d3ee 50%, #7dd3fc)">Arctic</button>
+          <button class="wallpaper-opt" data-wall="volcanic" style="background: linear-gradient(135deg, #ef4444, #f59e0b 50%, #dc2626)">Volcanic</button>
+          <button class="wallpaper-opt" data-wall="lavender" style="background: linear-gradient(135deg, #a78bfa, #c4b5fd 50%, #8b5cf6)">Lavender</button>
+          <button class="wallpaper-opt" data-wall="cyberpunk" style="background: linear-gradient(135deg, #ec4899, #22d3ee 50%, #facc15)">Cyberpunk</button>
+          <button class="wallpaper-opt" data-wall="rose" style="background: linear-gradient(135deg, #f472b6, #fb7185 50%, #ec4899)">Rose</button>
+          <button class="wallpaper-opt" data-wall="emerald" style="background: linear-gradient(135deg, #059669, #14b8a6 50%, #06b6d4)">Emerald</button>
+          <button class="wallpaper-opt" data-wall="ember" style="background: linear-gradient(135deg, #fb923c, #ef4444 50%, #f59e0b)">Ember</button>
+          <button class="wallpaper-opt" data-wall="sakura" style="background: linear-gradient(135deg, #fbcfe8, #f472b6 50%, #fbbf24)">Sakura</button>
+          <button class="wallpaper-opt" data-wall="deepsea" style="background: linear-gradient(135deg, #0077b6, #0891b2 50%, #009688)">Deep Sea</button>
+          <button class="wallpaper-opt" data-wall="aurora borealis" style="background: linear-gradient(135deg, #22c55e, #38bdf8 50%, #8b5cf6)">Aurora Borealis</button>
+          <button class="wallpaper-opt" data-wall="amber" style="background: linear-gradient(135deg, #f59e0b, #fcd34d 50%, #d97706)">Amber</button>
+          <button class="wallpaper-opt" data-wall="midnight city" style="background: linear-gradient(135deg, #6366f1, #8b5cf6 50%, #3b82f6)">Midnight City</button>
+          <button class="wallpaper-opt" data-wall="monochrome" style="background: linear-gradient(135deg, #9ca3af, #6b7280 50%, #4b5563)">Mono</button>
+          <button class="wallpaper-opt" data-wall="mountains" style="background: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80') center/cover">🏔️ Mountains</button>
+          <button class="wallpaper-opt" data-wall="ocean-photo" style="background: url('https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=80') center/cover">🌊 Ocean</button>
+          <button class="wallpaper-opt" data-wall="forest-photo" style="background: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&q=80') center/cover">🌲 Forest</button>
+          <button class="wallpaper-opt" data-wall="stars" style="background: url('https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=400&q=80') center/cover">✨ Stars</button>
+          <button class="wallpaper-opt" data-wall="aurora-photo" style="background: url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400&q=80') center/cover">🌌 Aurora</button>
+          <button class="wallpaper-opt" data-wall="desert" style="background: url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400&q=80') center/cover">🏜️ Desert</button>
+          <button class="wallpaper-opt" data-wall="city" style="background: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&q=80') center/cover">🏙️ City</button>
         </div>
       </div>
       <div class="wm-grid" id="wmGrid"></div>
+      <div class="wm-section wm-backup-section">
+        <h4 class="wm-label">Backup & Restore</h4>
+        <div class="wm-backup-row">
+          <button class="wm-btn" id="wmExport">💾 Esporta</button>
+          <button class="wm-btn" id="wmImport">📂 Importa</button>
+          <input type="file" id="wmImportFile" accept=".json" style="display:none" />
+        </div>
+      </div>
       <div class="wm-footer">
         <button class="wm-btn" id="wmShowAll">Mostra tutti</button>
         <button class="wm-btn primary" id="wmDone">Fatto</button>
@@ -336,7 +379,56 @@
     </div>
   </div>
 
+  <!-- Floating Grid Edit Bar -->
+  <div class="grid-edit-floating-bar" id="gridEditFloatingBar" aria-hidden="true">
+    <div class="grid-edit-bar-text">✨ <span>Modalità Griglia attiva • Trascina e riorganizza</span></div>
+    <button class="grid-edit-bar-btn secondary" id="floatingResetBtn">↺ Ripristina</button>
+    <button class="grid-edit-bar-btn primary" id="floatingDoneBtn">✓ Fatto</button>
+  </div>
+
   <div class="toast" id="toast">Copiato ✓</div>
+
+  <!-- Finance Full-Screen View -->
+  <div class="finance-overlay" id="financeOverlay" aria-hidden="true">
+    <div class="finance-view">
+      <div class="finance-header">
+        <h2 class="finance-title">📊 Mercati</h2>
+        <button class="finance-close" id="financeClose" aria-label="Chiudi">✕</button>
+      </div>
+      <div class="finance-columns">
+        <!-- BORSA -->
+        <div class="finance-col">
+          <div class="finance-col-header">
+            <span class="finance-col-icon">📈</span>
+            <h3>Borsa</h3>
+            <span class="widget-timestamp" id="finMarketsTimestamp"></span>
+            <button class="widget-refresh" data-finance="markets" aria-label="Aggiorna borsa">↻</button>
+          </div>
+          <div class="finance-col-body" id="finMarketsList"></div>
+        </div>
+        <!-- ETF -->
+        <div class="finance-col">
+          <div class="finance-col-header">
+            <span class="finance-col-icon">📈</span>
+            <h3>ETF</h3>
+            <span class="widget-timestamp" id="finEtfTimestamp"></span>
+            <button class="widget-refresh" data-finance="etf" aria-label="Aggiorna ETF">↻</button>
+          </div>
+          <div class="finance-col-body" id="finEtfList"></div>
+        </div>
+        <!-- CRYPTO -->
+        <div class="finance-col">
+          <div class="finance-col-header">
+            <span class="finance-col-icon">₿</span>
+            <h3>Crypto</h3>
+            <span class="widget-timestamp" id="finCryptoTimestamp"></span>
+            <button class="widget-refresh" data-finance="crypto" aria-label="Aggiorna crypto">↻</button>
+          </div>
+          <div class="finance-col-body" id="finCryptoList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <script src="script.js"></script>
 </body>
 </html>

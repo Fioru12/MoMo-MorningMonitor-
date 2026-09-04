@@ -8,9 +8,11 @@ if ('serviceWorker' in navigator) {
 
 // ==================== WebSocket Client ====================
 let ws = null;
+let wsRetryDelay = 1000;
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${protocol}//${window.location.host}`);
+    ws.onopen = () => { wsRetryDelay = 1000; };
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
@@ -19,8 +21,8 @@ function connectWebSocket() {
             }
         } catch(e) {}
     };
-    ws.onclose = () => setTimeout(connectWebSocket, 5000);
-    ws.onerror = () => setTimeout(connectWebSocket, 5000);
+    ws.onclose = () => { setTimeout(connectWebSocket, wsRetryDelay); wsRetryDelay = Math.min(wsRetryDelay * 2, 30000); };
+    ws.onerror = () => { ws.close(); };
 }
 setTimeout(connectWebSocket, 1000);
 
@@ -352,6 +354,74 @@ function emptyState(icon, text) {
   return `<div class="widget-empty"><span class="widget-empty-icon">${icon}</span>${escapeHtml(text)}</div>`;
 }
 
+function timeAgo(date) {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'adesso';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm fa';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h fa';
+  return Math.floor(hours / 24) + 'g fa';
+}
+
+const widgetTimestamps = {};
+
+function setWidgetTimestamp(id) {
+  widgetTimestamps[id] = new Date();
+  const el = document.getElementById(id + 'Timestamp');
+  if (el) el.textContent = timeAgo(new Date());
+}
+
+function refreshTimestamps() {
+  Object.keys(widgetTimestamps).forEach(id => {
+    const el = document.getElementById(id + 'Timestamp');
+    if (el) el.textContent = timeAgo(widgetTimestamps[id]);
+  });
+}
+setInterval(refreshTimestamps, 30000);
+
+function formatBytes(bytes) {
+  if (bytes == null || bytes === 0) return '0 B';
+  if (typeof bytes === 'string' && /[BKMGT]/.test(bytes)) return bytes;
+  const b = parseInt(bytes);
+  if (isNaN(b)) return bytes;
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(b) / Math.log(1024));
+  return (b / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
+
+function parseDecimal(val) {
+  if (val == null) return NaN;
+  if (typeof val === 'number') return val;
+  return parseFloat(String(val).replace(',', '.'));
+}
+
+function formatPrice(val, currency = '€') {
+  const num = parseDecimal(val);
+  if (isNaN(num)) return val ?? '—';
+  return currency + num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatPercent(val) {
+  const num = parseDecimal(val);
+  if (isNaN(num)) return val ?? '—';
+  return num.toFixed(1) + '%';
+}
+
+function getWeatherIcon(desc) {
+  if (!desc) return '🌤️';
+  const d = desc.toLowerCase();
+  if (d.includes('temporale') || d.includes('thunder')) return '⛈️';
+  if (d.includes('neve') || d.includes('snow') || d.includes('nevic')) return '❄️';
+  if (d.includes('pioggia') || d.includes('rain') || d.includes('piov') || d.includes('rovesc')) return '🌧️';
+  if (d.includes('foschia') || d.includes('nebbia') || d.includes('mist')) return '🌫️';
+  if (d.includes('nuvol') || d.includes('cloud') || d.includes('copert')) return '☁️';
+  if (d.includes('parti') && (d.includes('nuvol') || d.includes('cloud'))) return '⛅';
+  if (d.includes('sole') || d.includes('sun') || d.includes('sereno') || d.includes('chiaro')) return '☀️';
+  if (d.includes('vento') || d.includes('wind')) return '💨';
+  return '🌤️';
+}
+
 // ==================== ANIMATED COUNTER ====================
 function animateCounter(element, targetValue, suffix = '') {
   const target = parseInt(targetValue);
@@ -515,7 +585,7 @@ async function loadWeather() {
         return `
           <div class="forecast-card">
             <div class="forecast-date">${dayName} ${dayNum} ${month}</div>
-            <div class="forecast-icon">${day.icon ? '🌤️' : '🌡️'}</div>
+            <div class="forecast-icon">${getWeatherIcon(day.icon || day.desc)}</div>
             <div class="forecast-temps">
               <span class="forecast-temp-max">${day.tempMax}°</span>
               <span class="forecast-temp-min">${day.tempMin}°</span>
@@ -526,6 +596,7 @@ async function loadWeather() {
     } else {
       forecastRow.innerHTML = '';
     }
+    setWidgetTimestamp('weather');
   } catch (err) {
     tempEl.classList.remove('loading');
     showError('weatherError', 'Errore di connessione');
@@ -539,10 +610,10 @@ async function updateHeaderWeather() {
     const data = await fetchAPI('/api/weather');
     if (!data.error) {
       document.getElementById('headerWeatherTemp').textContent = `${data.temp}°`;
-      document.getElementById('headerWeatherIcon').textContent = data.desc.includes('nuvol') ? '☁️' : data.desc.includes('pioggia') ? '🌧️' : data.desc.includes('sole') ? '☀️' : '🌤️';
+      document.getElementById('headerWeatherIcon').textContent = getWeatherIcon(data.desc);
     }
   } catch {
-    // silently fail
+    // header weather — non-critical, skip toast
   }
 }
 updateHeaderWeather();
@@ -592,7 +663,7 @@ async function loadSystem() {
     if (cpuHistory.length > MAX_HISTORY) cpuHistory.shift();
     if (ramHistory.length > MAX_HISTORY) ramHistory.shift();
   } catch {
-    // silently fail
+    // system metrics — non-critical
   }
 }
 
@@ -644,7 +715,7 @@ async function loadTodos() {
       });
     });
   } catch {
-    // silently fail
+    showToast('⚠️ Errore caricamento todo');
   }
 }
 
@@ -664,7 +735,7 @@ document.getElementById('todoForm').addEventListener('submit', async (e) => {
     playSound('todo');
     loadTodos();
   } catch {
-    // silently fail
+    showToast('⚠️ Errore salvataggio todo');
   }
 });
 
@@ -683,8 +754,9 @@ document.querySelectorAll('.widget-refresh').forEach(btn => {
       case 'storage': loadStorage(); break;
       case 'services': loadServices(); break;
       case 'github': loadGitHub(); break;
-      case 'crypto': loadCrypto(); break;
+      case 'crypto': loadCryptoMarkets(); break;
       case 'markets': loadMarkets(); break;
+      case 'etf': loadEtf(); break;
     }
   });
 });
@@ -725,7 +797,9 @@ document.addEventListener('keydown', (e) => {
       loadStorage();
       loadServices();
       loadGitHub();
-      loadCrypto();
+      loadCryptoMarkets();
+      loadMarkets();
+      loadEtf();
       playSound('refresh');
       break;
     case 'd':
@@ -743,6 +817,10 @@ document.addEventListener('keydown', (e) => {
       } else {
         showShortcutHint();
       }
+      break;
+    case 'f':
+      e.preventDefault();
+      toggleFinanceView();
       break;
   }
 });
@@ -791,7 +869,7 @@ async function loadNotes() {
       });
     });
   } catch {
-    // silently fail
+    showToast('⚠️ Errore caricamento note');
   }
 }
 
@@ -811,7 +889,7 @@ document.getElementById('notesForm').addEventListener('submit', async (e) => {
     playSound('todo');
     loadNotes();
   } catch {
-    // silently fail
+    showToast('⚠️ Errore salvataggio nota');
   }
 });
 
@@ -849,7 +927,7 @@ async function loadBookmarks() {
       });
     });
   } catch {
-    // silently fail
+    showToast('⚠️ Errore caricamento bookmarks');
   }
 }
 
@@ -910,18 +988,22 @@ async function loadCalendar() {
     }
 
     // dots for todos by day
-    let todoDays = new Set();
+    let todoDays = new Map();
     try {
       const todos = await fetchAPI('/api/todos');
       todos.forEach(t => {
         const d = new Date(t.createdAt);
-        if (d.getMonth()+1 === data.month && d.getFullYear() === data.year) todoDays.add(d.getDate());
+        if (d.getMonth()+1 === data.month && d.getFullYear() === data.year) {
+          const day = d.getDate();
+          todoDays.set(day, (todoDays.get(day) || 0) + 1);
+        }
       });
     } catch {}
     data.days.forEach(day => {
       const isToday = day.day === data.today;
-      const hasTodo = todoDays.has(day.day);
-      html += `<div class="calendar-day ${isToday ? 'today' : ''} ${hasTodo ? 'has-todo' : ''}" data-day="${day.day}" title="${hasTodo ? 'Hai task' : ''}">${day.day}${hasTodo ? '<span class="cal-dot"></span>' : ''}</div>`;
+      const todoCount = todoDays.get(day.day) || 0;
+      const hasTodo = todoCount > 0;
+      html += `<div class="calendar-day ${isToday ? 'today' : ''} ${hasTodo ? 'has-todo' : ''}" data-day="${day.day}" title="${hasTodo ? todoCount + (todoCount === 1 ? ' task' : ' task') : ''}">${day.day}${hasTodo ? '<span class="cal-dot"></span>' : ''}</div>`;
     });
 
     grid.innerHTML = html;
@@ -940,20 +1022,20 @@ async function loadNetwork() {
     data.interfaces.forEach(iface => {
       html += `
         <div class="network-item">
-          <span class="network-label">${iface.name}</span>
-          <span class="network-value">${iface.ip}</span>
+          <span class="network-label">${escapeHtml(iface.name)}</span>
+          <span class="network-value">${escapeHtml(iface.ip)}</span>
         </div>
       `;
     });
 
     html += `
       <div class="network-item">
-        <span class="network-label">RX</span>
-        <span class="network-value">${data.rxBytes}</span>
+        <span class="network-label">⬇ Ricevuti</span>
+        <span class="network-value">${formatBytes(data.rxBytes)}</span>
       </div>
       <div class="network-item">
-        <span class="network-label">TX</span>
-        <span class="network-value">${data.txBytes}</span>
+        <span class="network-label">⬆ Trasferiti</span>
+        <span class="network-value">${formatBytes(data.txBytes)}</span>
       </div>
     `;
 
@@ -976,18 +1058,19 @@ async function loadStorage() {
 
     info.innerHTML = data.usage.map(disk => {
       const percent = parseInt(disk.percent) || 0;
+      const barColor = percent > 90 ? 'var(--danger)' : percent > 70 ? 'var(--warning)' : '';
       return `
         <div class="storage-item">
           <div class="storage-header">
-            <span class="storage-device">${disk.device}</span>
-            <span class="storage-percent">${disk.percent}</span>
+            <span class="storage-device">${escapeHtml(disk.device)}</span>
+            <span class="storage-percent">${percent}%</span>
           </div>
           <div class="storage-bar">
-            <div class="storage-bar-fill" style="width: ${percent}%"></div>
+            <div class="storage-bar-fill" style="width: ${percent}%; ${barColor ? 'background:' + barColor : ''}"></div>
           </div>
           <div class="storage-details">
-            <span>Usato: ${disk.used}</span>
-            <span>Libero: ${disk.free}</span>
+            <span>Usato: ${formatBytes(disk.used)}</span>
+            <span>Libero: ${formatBytes(disk.free)}</span>
           </div>
         </div>
       `;
@@ -1037,7 +1120,7 @@ async function loadGitHub() {
     userEl.innerHTML = `
       <img src="${data.user.avatar}" alt="Avatar" class="github-avatar" />
       <div class="github-info">
-        <div class="github-name">${data.user.name || data.user.login}</div>
+        <div class="github-name">${escapeHtml(data.user.name || data.user.login)}</div>
         <div class="github-stats">
           <span>📦 ${data.user.repos}</span>
           <span>👥 ${data.user.followers}</span>
@@ -1068,58 +1151,101 @@ async function loadGitHub() {
 }
 
 // ==================== WIDGET: CRYPTO ====================
-async function loadCrypto() {
-  try {
-    const cryptos = await fetchAPI('/api/crypto');
-    const list = document.getElementById('cryptoList');
-    
-    if (cryptos.length === 0) {
-      list.innerHTML = emptyState('₿', 'Nessun dato crypto');
-      return;
-    }
 
-    list.innerHTML = cryptos.map(crypto => {
-      const changeClass = crypto.change >= 0 ? 'positive' : 'negative';
-      const changeSymbol = crypto.change >= 0 ? '▲' : '▼';
-      return `
-        <div class="crypto-item">
-          <span class="crypto-name">${crypto.name}</span>
-          <span class="crypto-price">$${crypto.price.toLocaleString()}</span>
-          <span class="crypto-change ${changeClass}">${changeSymbol} ${Math.abs(crypto.change).toFixed(2)}%</span>
-        </div>
-      `;
-    }).join('');
-  } catch {
-    document.getElementById('cryptoList').innerHTML = emptyState('⚠️', 'Errore caricamento crypto');
-  }
+// ==================== WIDGET: BORSA / ETF / CRYPTO (separate) ====================
+function sparklineSVG(data, up) {
+  if (!data || data.length < 2) return '';
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 64, h = 24;
+  const step = w / (data.length - 1);
+  const points = data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / range) * (h - 4) - 2).toFixed(1)}`)
+    .join(' ');
+  const color = up ? 'var(--success)' : 'var(--danger)';
+  const gid = 'sg_' + Math.random().toString(36).slice(2, 8);
+  return `<svg class="market-spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="0,${h} ${points} ${w},${h}" fill="url(#${gid})"/>
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
 }
 
-// ==================== WIDGET: BORSA ====================
-async function loadMarkets() {
+async function loadMarketWidget(type, listId, timestampId) {
   try {
-    const markets = await fetchAPI('/api/markets');
-    const list = document.getElementById('marketsList');
+    const markets = await fetchAPI(`/api/markets?type=${encodeURIComponent(type)}`);
+    const list = document.getElementById(listId);
 
     if (markets.length === 0) {
-      list.innerHTML = emptyState('📈', 'Nessun dato di borsa');
+      list.innerHTML = emptyState('📈', 'Nessun dato');
       return;
     }
 
     list.innerHTML = markets.map(m => {
       const changeClass = m.change >= 0 ? 'positive' : 'negative';
       const changeSymbol = m.change >= 0 ? '▲' : '▼';
+      const spark = sparklineSVG(m.sparkline, m.change >= 0);
       return `
-        <div class="crypto-item">
-          <span class="crypto-name">${m.name}</span>
-          <span class="crypto-price">${m.price.toLocaleString('it-IT', { maximumFractionDigits: 2 })}</span>
-          <span class="crypto-change ${changeClass}">${changeSymbol} ${Math.abs(m.change).toFixed(2)}%</span>
+        <div class="market-item">
+          <span class="market-name">${escapeHtml(m.name)}</span>
+          <span class="market-spark-cell">${spark}</span>
+          <span class="market-price">${formatPrice(m.price)}</span>
+          <span class="market-change ${changeClass}">${changeSymbol} ${Math.abs(m.change).toFixed(2)}%</span>
         </div>
       `;
     }).join('');
+    if (timestampId) setWidgetTimestamp(timestampId.replace('Timestamp', ''));
   } catch {
-    document.getElementById('marketsList').innerHTML = emptyState('⚠️', 'Errore caricamento borsa');
+    document.getElementById(listId).innerHTML = emptyState('⚠️', 'Errore caricamento');
   }
 }
+
+function loadMarkets() { return loadMarketWidget('indice', 'marketsList', 'marketsTimestamp'); }
+function loadEtf() { return loadMarketWidget('etf', 'etfList', 'etfTimestamp'); }
+function loadCryptoMarkets() { return loadMarketWidget('crypto', 'cryptoList', 'cryptoTimestamp'); }
+
+// ==================== FINANCE FULL-SCREEN VIEW ====================
+function loadFinanceView() {
+  loadMarketWidget('indice', 'finMarketsList', 'finMarketsTimestamp');
+  loadMarketWidget('etf', 'finEtfList', 'finEtfTimestamp');
+  loadMarketWidget('crypto', 'finCryptoList', 'finCryptoTimestamp');
+}
+
+function toggleFinanceView(show) {
+  const overlay = document.getElementById('financeOverlay');
+  if (!overlay) return;
+  const visible = overlay.classList.contains('visible');
+  const shouldShow = show !== undefined ? show : !visible;
+  overlay.classList.toggle('visible', shouldShow);
+  overlay.setAttribute('aria-hidden', String(!shouldShow));
+  if (shouldShow) loadFinanceView();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const finBtn = document.getElementById('financeViewBtn');
+  const finClose = document.getElementById('financeClose');
+  const finOverlay = document.getElementById('financeOverlay');
+  if (finBtn) finBtn.addEventListener('click', () => toggleFinanceView());
+  if (finClose) finClose.addEventListener('click', () => toggleFinanceView(false));
+  if (finOverlay) finOverlay.addEventListener('click', (e) => { if (e.target === finOverlay) toggleFinanceView(false); });
+
+  // Finance overlay refresh buttons
+  document.querySelectorAll('[data-finance]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.getAttribute('data-finance');
+      const map = { markets: 'indice', etf: 'etf', crypto: 'crypto' };
+      const tsMap = { markets: 'finMarketsTimestamp', etf: 'finEtfTimestamp', crypto: 'finCryptoTimestamp' };
+      const listMap = { markets: 'finMarketsList', etf: 'finEtfList', crypto: 'finCryptoList' };
+      if (map[type]) loadMarketWidget(map[type], listMap[type], tsMap[type]);
+    });
+  });
+});
 
 // ==================== FAVICON FOR BOOKMARKS ====================
 function getFaviconUrl(url) {
@@ -1242,7 +1368,8 @@ function renderPalette(q) {
   });
 }
 if (cmdPaletteInput) {
-  cmdPaletteInput.addEventListener('input', ()=> renderPalette(cmdPaletteInput.value));
+  let paletteDebounce;
+  cmdPaletteInput.addEventListener('input', ()=> { clearTimeout(paletteDebounce); paletteDebounce = setTimeout(()=> renderPalette(cmdPaletteInput.value), 250); });
 }
 
 document.addEventListener('keydown', (e) => {
@@ -1328,15 +1455,21 @@ async function loadSnippets() {
     list.innerHTML = snippets.map(s => `
       <div class="snippet-item">
         <div class="snippet-info">
-          <div class="snippet-title">${s.title}</div>
-          <code class="snippet-cmd" title="${s.command}">${s.command}</code>
+          <div class="snippet-title">${escapeHtml(s.title)}</div>
+          <code class="snippet-cmd" title="${escapeHtml(s.command)}">${escapeHtml(s.command)}</code>
         </div>
         <div class="snippet-actions">
-          <button class="snippet-btn" onclick="copySnippet('${s.command.replace(/'/g, "\\'")}')" title="Copia negli appunti">📋</button>
-          <button class="snippet-btn" onclick="deleteSnippet('${s.id}')" title="Elimina">✕</button>
+          <button class="snippet-btn" data-copy="${escapeHtml(s.command)}" title="Copia negli appunti">📋</button>
+          <button class="snippet-btn" data-delete="${s.id}" title="Elimina">✕</button>
         </div>
       </div>
     `).join('');
+    list.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => copySnippet(btn.dataset.copy));
+    });
+    list.querySelectorAll('[data-delete]').forEach(btn => {
+      btn.addEventListener('click', () => deleteSnippet(btn.dataset.delete));
+    });
   } catch {}
 }
 
@@ -1409,11 +1542,38 @@ let timerInterval = null;
 let timerSeconds = 25 * 60;
 let timerRunning = false;
 
+function saveTimerState() {
+  try { localStorage.setItem('momo-timer', JSON.stringify({ seconds: timerSeconds, running: timerRunning })); } catch {}
+}
+function restoreTimerState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('momo-timer') || 'null');
+    if (saved && typeof saved.seconds === 'number') {
+      timerSeconds = saved.seconds;
+      updateTimerDisplay();
+      if (saved.running && timerSeconds > 0) {
+        // Resume automatically
+        document.getElementById('timerStart').click();
+      }
+    }
+  } catch {}
+}
+
 function updateTimerDisplay() {
   const mins = Math.floor(timerSeconds / 60);
   const secs = timerSeconds % 60;
   document.getElementById('timerDisplay').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
+
+document.querySelectorAll('.timer-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (timerRunning) return;
+    document.querySelectorAll('.timer-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    timerSeconds = parseInt(btn.dataset.minutes) * 60;
+    updateTimerDisplay();
+  });
+});
 
 document.getElementById('timerStart').addEventListener('click', () => {
   if (timerRunning) return;
@@ -1425,11 +1585,21 @@ document.getElementById('timerStart').addEventListener('click', () => {
     if (timerSeconds > 0) {
       timerSeconds--;
       updateTimerDisplay();
+      saveTimerState();
     } else {
       clearInterval(timerInterval);
       timerRunning = false;
+      saveTimerState();
       playSound('todo');
       showToast('⏰ Timer completato!');
+      // Track pomodoro completions
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const pomData = JSON.parse(localStorage.getItem('momo-pomodoro') || '{}');
+        if (pomData.date !== today) { pomData.date = today; pomData.count = 0; }
+        pomData.count++;
+        localStorage.setItem('momo-pomodoro', JSON.stringify(pomData));
+      } catch {}
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('MoMo — Timer', { body: 'Il tuo timer è scaduto! ⏰' });
@@ -1442,13 +1612,16 @@ document.getElementById('timerStart').addEventListener('click', () => {
 document.getElementById('timerPause').addEventListener('click', () => {
   clearInterval(timerInterval);
   timerRunning = false;
+  saveTimerState();
 });
 
 document.getElementById('timerReset').addEventListener('click', () => {
   clearInterval(timerInterval);
   timerRunning = false;
-  timerSeconds = 25 * 60;
+  const activePreset = document.querySelector('.timer-preset.active');
+  timerSeconds = parseInt(activePreset?.dataset.minutes || 25) * 60;
   updateTimerDisplay();
+  saveTimerState();
 });
 
 // ==================== MoMo GRID ====================
@@ -1457,10 +1630,16 @@ function initMomoGrid() {
   const el = document.getElementById('momoGrid');
   if (!el || typeof GridStack === 'undefined') return;
 
-  // v3 layout key - v2 had cramped weather/system rows, force reset to new defaults
-  const LAYOUT_KEY = 'momo-grid-layout-v3';
+  const LAYOUT_KEY = 'momo-grid-layout-v10';
   localStorage.removeItem('momo-grid-layout');
   localStorage.removeItem('momo-grid-layout-v2');
+  localStorage.removeItem('momo-grid-layout-v3');
+  localStorage.removeItem('momo-grid-layout-v4');
+  localStorage.removeItem('momo-grid-layout-v5');
+  localStorage.removeItem('momo-grid-layout-v6');
+  localStorage.removeItem('momo-grid-layout-v7');
+  localStorage.removeItem('momo-grid-layout-v8');
+  localStorage.removeItem('momo-grid-layout-v9');
   const saved = localStorage.getItem(LAYOUT_KEY);
   let savedLayout = null;
   try { savedLayout = saved ? JSON.parse(saved) : null; } catch {}
@@ -1471,20 +1650,22 @@ function initMomoGrid() {
     margin: 8,
     float: false,
     animate: true,
-    draggable: { handle: '.widget-header', scroll: true },
+    draggable: { handle: '.widget-header, .drag-handle', scroll: true },
     resizable: { handles: 'se,e,sw,w' },
-    disableDrag: true,
+    disableDrag: false,
     disableResize: true,
-    columnOpts: {
-      breakpointForWindow: true,
-      breakpoints: [
-        { w: 768, c: 1 }
-      ]
-    },
+    cellHeightThrottle: 100,
+    minRow: 1,
   }, el);
 
   if (savedLayout) {
-    try { momoGrid.load(savedLayout); } catch {}
+    try {
+      momoGrid.load(savedLayout);
+    } catch {
+      momoGrid.save(true);
+    }
+  } else {
+    momoGrid.save(true);
   }
 
   function saveLayout() {
@@ -1496,9 +1677,13 @@ function initMomoGrid() {
   momoGrid.on('dragstop', saveLayout);
   momoGrid.on('resizestop', saveLayout);
 
+  let editing = false;
   const editBtn = document.getElementById('gridEditBtn');
   const resetBtn = document.getElementById('resetLayoutBtn');
-  let editing = false;
+  const floatingBar = document.getElementById('gridEditFloatingBar');
+  const floatingDone = document.getElementById('floatingDoneBtn');
+  const floatingReset = document.getElementById('floatingResetBtn');
+  const floatingText = floatingBar ? floatingBar.querySelector('.grid-edit-bar-text span') : null;
 
   function setEditing(on) {
     editing = on;
@@ -1506,22 +1691,40 @@ function initMomoGrid() {
     momoGrid.enableResize(on);
     el.classList.toggle('grid-editing', on);
     if (editBtn) editBtn.classList.toggle('active', on);
+    if (floatingBar) floatingBar.classList.toggle('visible', on);
+    if (floatingText) {
+      floatingText.textContent = on
+        ? 'Modalità Griglia attiva \u2022 Trascina e riorganizza'
+        : 'Modalità normale';
+    }
   }
 
   if (editBtn) editBtn.addEventListener('click', () => setEditing(!editing));
-  if (resetBtn) resetBtn.addEventListener('click', () => {
+  if (floatingDone) floatingDone.addEventListener('click', () => setEditing(false));
+  if (resetBtn) resetBtn.addEventListener('click', doReset);
+  if (floatingReset) floatingReset.addEventListener('click', doReset);
+
+  function doReset() {
+    if (!confirm('Ripristinare il layout della griglia? La disposizione personalizzata verrà persa.')) return;
     localStorage.removeItem('momo-grid-layout');
     localStorage.removeItem('momo-grid-layout-v2');
+    localStorage.removeItem('momo-grid-layout-v3');
+    localStorage.removeItem('momo-grid-layout-v4');
+    localStorage.removeItem('momo-grid-layout-v5');
+    localStorage.removeItem('momo-grid-layout-v6');
+    localStorage.removeItem('momo-grid-layout-v7');
+    localStorage.removeItem('momo-grid-layout-v8');
+    localStorage.removeItem('momo-grid-layout-v9');
     localStorage.removeItem(LAYOUT_KEY);
     location.reload();
-  });
+  }
 
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key.toLowerCase() === 'g') setEditing(!editing);
+    if (e.key === 'Escape' && editing) setEditing(false);
   });
 
-  // also wire palette action
   window.momoSetEditing = setEditing;
 }
 
@@ -1541,19 +1744,93 @@ function initMomoGreeting() {
   title.textContent = greet;
   if (sub) sub.textContent = msg;
 
-  fetch('/api/quote').then(r=>r.json()).then(d=>{
+  // Editable focus in greeting
+  const focusText = document.getElementById('greetingFocusText');
+  const focusCheck = document.getElementById('greetingFocusCheck');
+  function renderGreetingFocus() {
+    const data = JSON.parse(localStorage.getItem('momo-focus') || 'null');
+    if (!data || !data.text) {
+      focusText.textContent = '';
+      focusText.classList.remove('done');
+      focusCheck.textContent = '☐';
+      return;
+    }
+    focusText.textContent = data.text;
+    focusText.classList.toggle('done', !!data.done);
+    focusCheck.textContent = data.done ? '☑' : '☐';
+  }
+  if (focusText) {
+    focusText.addEventListener('blur', () => {
+      const text = focusText.textContent.trim();
+      if (!text) return;
+      const existing = JSON.parse(localStorage.getItem('momo-focus') || 'null');
+      localStorage.setItem('momo-focus', JSON.stringify({
+        text,
+        done: existing?.done || false,
+        date: new Date().toISOString().slice(0, 10),
+      }));
+      // Sync with focus widget
+      const focusInput = document.getElementById('focusInput');
+      const focusDisplay = document.getElementById('focusDisplay');
+      if (focusDisplay) {
+        focusDisplay.textContent = text;
+        focusDisplay.style.textDecoration = 'none';
+        focusDisplay.style.opacity = '1';
+        if (focusInput) focusInput.style.display = 'none';
+        const checkBtn = document.getElementById('focusCheck');
+        if (checkBtn) { checkBtn.textContent = '☐'; checkBtn.classList.remove('done'); }
+      }
+    });
+    focusText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); focusText.blur(); }
+    });
+  }
+  if (focusCheck) focusCheck.addEventListener('click', () => {
+    const data = JSON.parse(localStorage.getItem('momo-focus') || 'null');
+    if (!data) return;
+    data.done = !data.done;
+    localStorage.setItem('momo-focus', JSON.stringify(data));
+    renderGreetingFocus();
+    // Sync with focus widget
+    const checkBtn = document.getElementById('focusCheck');
+    const focusDisplay = document.getElementById('focusDisplay');
+    if (checkBtn) { checkBtn.textContent = data.done ? '☑' : '☐'; checkBtn.classList.toggle('done', data.done); }
+    if (focusDisplay) {
+      focusDisplay.style.textDecoration = data.done ? 'line-through' : 'none';
+      focusDisplay.style.opacity = data.done ? '0.6' : '1';
+    }
+    playSound('todo');
+  });
+  renderGreetingFocus();
+
+  // Summary: weather, news, todo, pomodoro
+  const summaryEl = document.getElementById('greetingSummary');
+  fetch('/api/briefing').then(r => r.json()).then(d => {
+    const el = document.getElementById('briefingBullets');
+    if (el && d.bullets) el.innerHTML = d.bullets.map(b => `<div class="briefing-bullet">${escapeHtml(b)}</div>`).join('');
+    if (summaryEl && d.news) {
+      const pomData = JSON.parse(localStorage.getItem('momo-pomodoro') || '{}');
+      const today = new Date().toISOString().slice(0, 10);
+      const pomCount = pomData.date === today ? (pomData.count || 0) : 0;
+      summaryEl.innerHTML = [
+        d.weather ? `<span class="greeting-summary-item"><span class="gs-icon">🌤️</span><span class="gs-value">${d.weather.temp}°C</span></span>` : '',
+        d.pending != null ? `<span class="greeting-summary-item"><span class="gs-icon">✅</span><span class="gs-value">${d.pending} todo</span></span>` : '',
+        d.news && d.news.length ? `<span class="greeting-summary-item"><span class="gs-icon">📰</span><span class="gs-value">${d.news.length} news</span></span>` : '',
+        `<span class="greeting-summary-item"><span class="gs-icon">🍅</span><span class="gs-value">${pomCount} pomodoro</span></span>`,
+      ].filter(Boolean).join('');
+    }
+  }).catch(() => {});
+
+  fetch('/api/quote').then(r => r.json()).then(d => {
     const qt = document.querySelector('#greetingQuote .quote-text');
     const qa = document.querySelector('#greetingQuote .quote-author');
     if (qt) qt.textContent = '"' + d.content + '"';
     if (qa) qa.textContent = '— ' + d.author;
-  }).catch(()=>{});
-  fetch('/api/briefing').then(r=>r.json()).then(d=>{
-    const el = document.getElementById('briefingBullets');
-    if (el && d.bullets) el.innerHTML = d.bullets.map(b=>`<div class="briefing-bullet">${b}</div>`).join('');
-  }).catch(()=>{});
+  }).catch(() => {});
+
   const sunEl = document.getElementById('greetingSun');
   if (sunEl) {
-    sunEl.textContent = '🌅 ' + (localStorage.getItem('momo-sunrise')||'06:42') + ' • 🌇 ' + (localStorage.getItem('momo-sunset')||'20:15');
+    sunEl.textContent = '🌅 ' + (localStorage.getItem('momo-sunrise') || '06:42') + ' • 🌇 ' + (localStorage.getItem('momo-sunset') || '20:15');
   }
 }
 
@@ -1565,12 +1842,24 @@ function initFocusWidget() {
   const clear = document.getElementById('focusClear');
   if (!input || !display) return;
 
+  function syncGreeting() {
+    const greetingText = document.getElementById('greetingFocusText');
+    const greetingCheck = document.getElementById('greetingFocusCheck');
+    const data = JSON.parse(localStorage.getItem('momo-focus') || 'null');
+    if (greetingText) {
+      greetingText.textContent = data?.text || '';
+      greetingText.classList.toggle('done', !!data?.done);
+    }
+    if (greetingCheck) greetingCheck.textContent = data?.done ? '☑' : '☐';
+  }
+
   function render() {
     const data = JSON.parse(localStorage.getItem('momo-focus')||'null');
     if (!data || !data.text) {
       display.innerHTML = '<span class="focus-empty">Scrivi il tuo focus e premi Invio ✨</span>';
       input.style.display = '';
       if (check) { check.textContent = '☐'; check.classList.remove('done'); }
+      syncGreeting();
       return;
     }
     input.style.display = 'none';
@@ -1581,6 +1870,7 @@ function initFocusWidget() {
       check.textContent = data.done ? '☑' : '☐';
       check.classList.toggle('done', !!data.done);
     }
+    syncGreeting();
   }
 
   input.addEventListener('keydown', (e)=>{
@@ -1633,6 +1923,7 @@ const WIDGET_DEFS = [
   { id: 'github', label: '🐙 GitHub', desc: 'Repo & profilo' },
   { id: 'crypto', label: '₿ Crypto', desc: 'BTC/ETH/SOL' },
   { id: 'markets', label: '📈 Borsa', desc: 'S&P 500, Nasdaq, FTSE MIB' },
+  { id: 'etf', label: '📈 ETF', desc: 'QQQ, SPY, VWCE' },
   { id: 'timer', label: '⏱️ Pomodoro', desc: '25 min timer' },
 ];
 
@@ -1717,6 +2008,85 @@ function initWidgetManager() {
   profileBtns.forEach(b=>b.addEventListener('click', ()=>applyProfile(b.dataset.profile)));
   const savedProfile = localStorage.getItem('momo-profile');
   applyProfile(savedProfile && PROFILES[savedProfile] ? savedProfile : 'morning');
+
+  // Backup / Restore
+  const exportBtn = document.getElementById('wmExport');
+  const importBtn = document.getElementById('wmImport');
+  const importFile = document.getElementById('wmImportFile');
+
+  if (exportBtn) exportBtn.addEventListener('click', async () => {
+    try {
+      const [todos, notes, bookmarks, snippets] = await Promise.all([
+        fetch('/api/todos').then(r => r.json()).catch(() => []),
+        fetch('/api/notes').then(r => r.json()).catch(() => []),
+        fetch('/api/bookmarks').then(r => r.json()).catch(() => []),
+        fetch('/api/snippets').then(r => r.json()).catch(() => []),
+      ]);
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        settings: {
+          wallpaper: localStorage.getItem('momo-wallpaper'),
+          theme: document.documentElement.getAttribute('data-theme'),
+          accent: localStorage.getItem('momo-accent'),
+          profile: localStorage.getItem('momo-profile'),
+          hiddenWidgets: localStorage.getItem('momo-hidden-widgets'),
+          layout: localStorage.getItem(LAYOUT_KEY),
+        },
+        data: { todos, notes, bookmarks, snippets },
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `momo-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('💾 Backup esportato');
+    } catch {
+      showToast('⚠️ Errore esportazione');
+    }
+  });
+
+  if (importBtn) importBtn.addEventListener('click', () => importFile.click());
+  if (importFile) importFile.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      if (!backup.data || !backup.version) { showToast('⚠️ File non valido'); return; }
+      const { todos, notes, bookmarks, snippets } = backup.data;
+      // Restore settings
+      if (backup.settings) {
+        const s = backup.settings;
+        if (s.wallpaper) localStorage.setItem('momo-wallpaper', s.wallpaper);
+        if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
+        if (s.accent) localStorage.setItem('momo-accent', s.accent);
+        if (s.profile) localStorage.setItem('momo-profile', s.profile);
+        if (s.hiddenWidgets) localStorage.setItem('momo-hidden-widgets', s.hiddenWidgets);
+        if (s.layout) localStorage.setItem(LAYOUT_KEY, s.layout);
+      }
+      // Restore data via API
+      for (const t of (todos || [])) {
+        await fetch('/api/todos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: t.text, done: t.done }) }).catch(() => {});
+      }
+      for (const n of (notes || [])) {
+        await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: n.text }) }).catch(() => {});
+      }
+      for (const b of (bookmarks || [])) {
+        await fetch('/api/bookmarks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: b.name, url: b.url }) }).catch(() => {});
+      }
+      for (const s of (snippets || [])) {
+        await fetch('/api/snippets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: s.title, command: s.command }) }).catch(() => {});
+      }
+      showToast('📂 Backup importato — ricarica');
+      setTimeout(() => location.reload(), 1500);
+    } catch {
+      showToast('⚠️ File di backup non valido');
+    }
+    importFile.value = '';
+  });
 }
 
 // ==================== INIT ====================
@@ -1750,10 +2120,12 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStorage();
   loadServices();
   loadGitHub();
-  loadCrypto();
+  loadCryptoMarkets();
   loadMarkets();
+  loadEtf();
   updateHeaderWeather();
   updateHeaderClock();
+  restoreTimerState();
 
   setInterval(loadWeather, 60000);
   // System metrics via WebSocket (every 3s). HTTP poll as fallback when WS is down.
@@ -1768,7 +2140,24 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(loadStorage, 30000);
   setInterval(loadServices, 10000);
   setInterval(loadGitHub, 300000);
-  setInterval(loadCrypto, 60000);
+  setInterval(loadCryptoMarkets, 120000);
   setInterval(loadMarkets, 120000);
+  setInterval(loadEtf, 120000);
   setInterval(updateHeaderWeather, 300000);
+
+  // Widget search: Bookmarks & Snippets
+  const bmSearch = document.getElementById('bookmarksSearch');
+  if (bmSearch) bmSearch.addEventListener('input', () => {
+    const q = bmSearch.value.toLowerCase();
+    document.querySelectorAll('#bookmarksList .bookmark-item').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+  const snSearch = document.getElementById('snippetsSearch');
+  if (snSearch) snSearch.addEventListener('input', () => {
+    const q = snSearch.value.toLowerCase();
+    document.querySelectorAll('#snippetsList .snippet-item').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
 });

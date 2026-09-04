@@ -406,16 +406,17 @@ app.get('/api/briefing', async (req, res) => {
     const quote = quoteRes.status === 'fulfilled' && quoteRes.value ? quoteRes.value : null;
 
     const pending = todosList.filter((t) => !t.done).length;
+    const escapeStr = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const bullets = [
-      weather && !weather.error ? `🌤️ ${weather.city}: ${weather.temp}°C, ${weather.desc} — tramonto ${weather.sunset}` : '🌤️ Meteo non disponibile',
-      news.length ? `📰 Top: "${news[0].title.slice(0, 70)}" — ${news[0].source}` : '📰 Nessuna news',
-      pending ? `✅ Hai ${pending} task aperti — focus su "${todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo'}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
+      weather && !weather.error ? `🌤️ ${escapeStr(weather.city)}: ${weather.temp}°C, ${escapeStr(weather.desc)} — tramonto ${escapeStr(weather.sunset)}` : '🌤️ Meteo non disponibile',
+      news.length ? `📰 Top: "${escapeStr(news[0].title.slice(0, 70))}" — ${escapeStr(news[0].source)}` : '📰 Nessuna news',
+      pending ? `✅ Hai ${pending} task aperti — focus su "${escapeStr(todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo')}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
     ];
 
     const result = {
       bullets,
       weather: weather ? { city: weather.city, temp: weather.temp, desc: weather.desc } : null,
-      news,
+      news: news.slice(0, 3),
       quote,
       pending,
       generatedAt: new Date().toISOString(),
@@ -694,19 +695,35 @@ app.get('/api/network', async (req, res) => {
 // --- Services ---
 app.get('/api/services', async (req, res) => {
   try {
-    const defaultServices = ['nginx', 'apache2', 'mysql', 'postgresql', 'redis', 'docker', 'ssh', 'cron'];
-    const serviceList = defaultServices.map((svc) => {
-      try {
-        const result = require('child_process')
-          .execSync(`systemctl is-active ${svc} 2>&1`)
-          .toString()
-          .trim();
-        return { name: svc, status: result === 'active' ? 'running' : 'stopped' };
-      } catch {
-        return { name: svc, status: 'not-found' };
-      }
-    });
-    res.json(serviceList);
+    if (process.platform === 'win32') {
+      const winServices = ['W3SVC', 'Spooler', 'Dhcp', 'Dnscache', 'EventLog', 'Themes', 'AudioSrv'];
+      const serviceList = winServices.map((svc) => {
+        try {
+          const result = require('child_process')
+            .execSync(`sc query "${svc}" 2>&1`, { encoding: 'utf8' })
+            .toString();
+          const isRunning = result.includes('RUNNING');
+          return { name: svc, status: isRunning ? 'running' : 'stopped' };
+        } catch {
+          return { name: svc, status: 'not-found' };
+        }
+      });
+      res.json(serviceList);
+    } else {
+      const defaultServices = ['nginx', 'apache2', 'mysql', 'postgresql', 'redis', 'docker', 'ssh', 'cron'];
+      const serviceList = defaultServices.map((svc) => {
+        try {
+          const result = require('child_process')
+            .execSync(`systemctl is-active ${svc} 2>&1`)
+            .toString()
+            .trim();
+          return { name: svc, status: result === 'active' ? 'running' : 'stopped' };
+        } catch {
+          return { name: svc, status: 'not-found' };
+        }
+      });
+      res.json(serviceList);
+    }
   } catch {
     res.json([]);
   }
@@ -739,68 +756,47 @@ app.get('/api/timer', (req, res) => {
   res.json({ mode: 'pomodoro', duration: 25 * 60 });
 });
 
-// --- Crypto ---
-app.get('/api/crypto', async (req, res) => {
-  try {
-    const cached = getCache('crypto_prices');
-    if (cached) return res.json(cached);
 
-    const coins = ['bitcoin', 'ethereum', 'solana'];
-    const promises = coins.map((coin) =>
-      fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=usd&include_24hr_change=true`,
-        { signal: AbortSignal.timeout(5000) }
-      )
-        .then((r) => r.json())
-        .catch(() => null)
-    );
-
-    const results = await Promise.all(promises);
-    const crypto = coins
-      .map((coin, i) => {
-        const data = results[i];
-        if (!data || !data[coin]) return null;
-        return {
-          name: coin.charAt(0).toUpperCase() + coin.slice(1),
-          price: data[coin].usd,
-          change: data[coin].usd_24h_change || 0,
-        };
-      })
-      .filter(Boolean);
-
-    setCache('crypto_prices', crypto, 2 * 60 * 1000); // 2 min cache
-    res.json(crypto);
-  } catch (err) {
-    res.json([]);
-  }
-});
-
-// --- Borsa (indici principali) ---
+// --- Borsa, ETF & Crypto (Mercati Finanziari) ---
 const MARKET_SYMBOLS = [
-  { symbol: '^GSPC', name: 'S&P 500' },
-  { symbol: '^IXIC', name: 'Nasdaq' },
-  { symbol: 'FTSEMIB.MI', name: 'FTSE MIB' },
+  { symbol: '^GSPC', name: 'S&P 500', type: 'Indice' },
+  { symbol: '^IXIC', name: 'Nasdaq', type: 'Indice' },
+  { symbol: 'FTSEMIB.MI', name: 'FTSE MIB', type: 'Indice' },
+  { symbol: 'QQQ', name: 'Invesco QQQ ETF', type: 'ETF' },
+  { symbol: 'SPY', name: 'SPDR S&P 500 ETF', type: 'ETF' },
+  { symbol: 'VWCE.DE', name: 'Vanguard All-World ETF', type: 'ETF' },
+  { symbol: 'BTC-USD', name: 'Bitcoin', type: 'Crypto' },
+  { symbol: 'ETH-USD', name: 'Ethereum', type: 'Crypto' },
+  { symbol: 'SOL-USD', name: 'Solana', type: 'Crypto' },
 ];
 
 app.get('/api/markets', async (req, res) => {
   try {
-    const cached = getCache('markets');
-    if (cached) return res.json(cached);
+    const typeFilter = (req.query.type || '').toLowerCase();
+    const cached = getCache('markets_all');
+    if (cached) {
+      if (!typeFilter) return res.json(cached);
+      return res.json(cached.filter((m) => (m.type || '').toLowerCase() === typeFilter));
+    }
 
     const results = await Promise.all(
-      MARKET_SYMBOLS.map(({ symbol, name }) =>
-        fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`, {
+      MARKET_SYMBOLS.map(({ symbol, name, type }) =>
+        fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1mo&interval=1d`, {
           headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(7000),
         })
           .then((r) => r.json())
           .then((data) => {
-            const meta = data?.chart?.result?.[0]?.meta;
+            const res0 = data?.chart?.result?.[0];
+            const meta = res0?.meta;
             if (!meta || typeof meta.regularMarketPrice !== 'number') return null;
+            const closes = res0?.indicators?.quote?.[0]?.close?.filter((v) => v != null) || [];
             return {
               name,
+              type,
               price: meta.regularMarketPrice,
               change: meta.regularMarketChangePercent || 0,
+              sparkline: closes.slice(-30),
             };
           })
           .catch(() => null)
@@ -808,7 +804,7 @@ app.get('/api/markets', async (req, res) => {
     );
 
     const markets = results.filter(Boolean);
-    setCache('markets', markets, 5 * 60 * 1000); // 5 min cache
+    setCache('markets_all', markets, 3 * 60 * 1000); // 3 min cache
     res.json(markets);
   } catch (err) {
     res.json([]);
