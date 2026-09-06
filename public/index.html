@@ -81,6 +81,7 @@
           <div class="header-icon-group">
             <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
             <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <button class="grid-edit-btn" id="notificationToggle" title="Attiva notifiche (🔔)" aria-label="Attiva notifiche">🔔</button>
             <button class="grid-edit-btn" id="financeViewBtn" title="Mercati (F)" aria-label="Mercati (F)">📊</button>
             <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget" aria-label="Gestisci widget">👁️</button>
             <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)" aria-label="Modifica griglia (G)">◧</button>
@@ -429,6 +430,30 @@
       </div>
     </div>
   </div>
-  <script src="script.js"></script>
+  <!-- Web Terminal Overlay -->
+  <div class="terminal-overlay" id="terminalOverlay" aria-hidden="true" role="dialog" aria-label="Web Terminal">
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <div class="terminal-title">🖥️ MoMo Web Terminal</div>
+        <div class="terminal-controls">
+          <button class="terminal-btn" id="terminalClear" title="Pulisci schermo">🧹 Pulisci</button>
+          <button class="terminal-close" id="terminalClose" aria-label="Chiudi Terminale">✕</button>
+        </div>
+      </div>
+      <div class="terminal-body" id="terminalOutput">
+        <div class="term-line term-sys">☀️ MoMo Web Terminal • Digita un comando o esegui uno snippet CLI</div>
+      </div>
+      <form class="terminal-form" id="terminalForm">
+        <span class="terminal-prompt">momo@system:~$</span>
+        <input type="text" class="terminal-input" id="terminalInput" placeholder="Scrivi un comando (es. docker ps, git status)..." autocomplete="off" />
+        <button type="submit" class="terminal-send">Invia ↵</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
+
+
+

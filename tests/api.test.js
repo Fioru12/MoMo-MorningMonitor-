@@ -132,7 +132,26 @@ async function runTests() {
     failed++;
   }
 
+  // Test 5: Snippet Exec API (Web Terminal)
+  try {
+    const res = await request('/api/snippets/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: { command: 'echo Hello MoMo' },
+    });
+    if (res.status === 200 && res.data.ok && res.data.stdout.includes('Hello MoMo')) {
+      console.log('✅ Snippet Exec API - Successfully executed CLI command in Web Terminal');
+      passed++;
+    } else {
+      throw new Error('Snippet Exec returned status ' + res.status);
+    }
+  } catch (err) {
+    console.log('❌ Snippet Exec API -', err.message);
+    failed++;
+  }
+
   console.log(`\n📊 Test Results: ${passed} passed, ${failed} failed.`);
+
   process.exit(failed > 0 ? 1 : 0);
 }
 

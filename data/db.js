@@ -147,6 +147,10 @@ async function seedDefaultSnippets() {
   }
 }
 
+function generateId() {
+  return Date.now().toString() + '-' + Math.random().toString(36).substring(2, 7);
+}
+
 // DB Helper methods
 const dbService = {
   initDB,
@@ -158,7 +162,7 @@ const dbService = {
   },
   async addTodo(text) {
     const item = {
-      id: Date.now().toString(),
+      id: generateId(),
       text: text.trim(),
       done: 0,
       createdAt: new Date().toISOString(),
@@ -190,7 +194,7 @@ const dbService = {
   },
   async addNote(text) {
     const item = {
-      id: Date.now().toString(),
+      id: generateId(),
       text: text.trim(),
       createdAt: new Date().toISOString(),
     };
@@ -216,7 +220,7 @@ const dbService = {
       formattedUrl = 'https://' + formattedUrl;
     }
     const item = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: name.trim(),
       url: formattedUrl,
       createdAt: new Date().toISOString(),
@@ -240,7 +244,7 @@ const dbService = {
   },
   async addSnippet(title, command, category = 'CLI') {
     const item = {
-      id: Date.now().toString(),
+      id: generateId(),
       title: title.trim(),
       command: command.trim(),
       category: (category || 'CLI').trim(),
@@ -260,5 +264,6 @@ const dbService = {
     return res.changes > 0;
   },
 };
+
 
 module.exports = dbService;
