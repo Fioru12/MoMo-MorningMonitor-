@@ -1,4 +1,4 @@
-import { fetchAPI, showToast, playSound, escapeHtml } from '../../state.js';
+import { showToast, playSound, escapeHtml } from '../../state.js';
 
 export function initTerminalWidget() {
   const overlay = document.getElementById('terminalOverlay');
@@ -72,11 +72,31 @@ export async function executeCommand(command) {
   output.scrollTop = output.scrollHeight;
 
   try {
-    const res = await fetchAPI('/api/snippets/exec', {
+    let pin = sessionStorage.getItem('momo-terminal-pin') || '';
+    if (!pin) {
+      pin = window.prompt('PIN del Web Terminal:') || '';
+    }
+
+    const response = await fetch('/api/snippets/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, pin }),
     });
+
+    if (response.status === 401) {
+      sessionStorage.removeItem('momo-terminal-pin');
+      loadingLine.remove();
+      const errLine = document.createElement('div');
+      errLine.className = 'term-line term-error';
+      errLine.textContent = '🔒 PIN errato o mancante. Riprova il comando.';
+      output.appendChild(errLine);
+      playSound('delete');
+      output.scrollTop = output.scrollHeight;
+      return;
+    }
+
+    sessionStorage.setItem('momo-terminal-pin', pin);
+    const res = await response.json();
 
     loadingLine.remove();
 

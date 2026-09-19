@@ -194,9 +194,27 @@ router.get('/timer', (req, res) => {
 
 // --- Snippet Exec / Web Terminal ---
 const { exec } = require('child_process');
+const crypto = require('crypto');
+
+const TERMINAL_PIN = process.env.TERMINAL_PIN || crypto.randomInt(100000, 999999).toString();
+if (!process.env.TERMINAL_PIN) {
+  console.log(`🔒 PIN Web Terminal (non impostato in .env, generato per questa sessione): ${TERMINAL_PIN}`);
+}
+
+function pinMatches(candidate) {
+  const a = Buffer.from(String(candidate || ''));
+  const b = Buffer.from(TERMINAL_PIN);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 router.post('/snippets/exec', (req, res) => {
-  const { command } = req.body;
+  const { command, pin } = req.body;
+
+  if (!pinMatches(pin)) {
+    return res.status(401).json({ error: 'PIN non valido o mancante' });
+  }
+
   if (!command || typeof command !== 'string' || !command.trim()) {
     return res.status(400).json({ error: 'Comando non valido' });
   }

@@ -50,6 +50,7 @@ async function runTests() {
 
   // Start temporary server for testing
   process.env.PORT = PORT;
+  process.env.TERMINAL_PIN = '000000'; // PIN fisso e noto, solo per i test
   // Clear require cache for server if needed or start it
   const serverModule = require('../server.js');
 
@@ -137,7 +138,7 @@ async function runTests() {
     const res = await request('/api/snippets/exec', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: { command: 'echo Hello MoMo' },
+      body: { command: 'echo Hello MoMo', pin: '000000' },
     });
     if (res.status === 200 && res.data.ok && res.data.stdout.includes('Hello MoMo')) {
       console.log('✅ Snippet Exec API - Successfully executed CLI command in Web Terminal');
@@ -147,6 +148,24 @@ async function runTests() {
     }
   } catch (err) {
     console.log('❌ Snippet Exec API -', err.message);
+    failed++;
+  }
+
+  // Test 6: Snippet Exec API rejects requests without a valid PIN
+  try {
+    const res = await request('/api/snippets/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: { command: 'echo Hello MoMo' },
+    });
+    if (res.status === 401) {
+      console.log('✅ Snippet Exec API - Rejects requests without a valid PIN');
+      passed++;
+    } else {
+      throw new Error('Expected 401, got ' + res.status);
+    }
+  } catch (err) {
+    console.log('❌ Snippet Exec API (auth) -', err.message);
     failed++;
   }
 
