@@ -169,6 +169,52 @@ async function runTests() {
     failed++;
   }
 
+  // Test 7: World News API
+  try {
+    const res = await request('/api/worldnews');
+    const items = res.data;
+    if (res.status === 200 && Array.isArray(items) && (items.length === 0 || (items[0].title && items[0].url && items[0].source))) {
+      console.log('✅ World News API - Returns an array of articles with the expected shape');
+      passed++;
+    } else {
+      throw new Error('World News API returned an unexpected shape, status ' + res.status);
+    }
+  } catch (err) {
+    console.log('❌ World News API -', err.message);
+    failed++;
+  }
+
+  // Test 8: Markets API
+  try {
+    const res = await request('/api/markets');
+    const items = res.data;
+    if (res.status === 200 && Array.isArray(items) && (items.length === 0 || (items[0].name && typeof items[0].price === 'number'))) {
+      console.log('✅ Markets API - Returns an array of quotes with the expected shape');
+      passed++;
+    } else {
+      throw new Error('Markets API returned an unexpected shape, status ' + res.status);
+    }
+  } catch (err) {
+    console.log('❌ Markets API -', err.message);
+    failed++;
+  }
+
+  // Test 9: Markets API type filter
+  try {
+    const res = await request('/api/markets?type=crypto');
+    const items = res.data;
+    const allCrypto = items.every(m => (m.type || '').toLowerCase() === 'crypto');
+    if (res.status === 200 && Array.isArray(items) && allCrypto) {
+      console.log('✅ Markets API - type filter returns only matching entries');
+      passed++;
+    } else {
+      throw new Error('Markets API type filter returned non-matching entries');
+    }
+  } catch (err) {
+    console.log('❌ Markets API (filter) -', err.message);
+    failed++;
+  }
+
   console.log(`\n📊 Test Results: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);
