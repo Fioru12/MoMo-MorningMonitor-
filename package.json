@@ -1,6 +1,6 @@
 {
   "name": "momo-morning-monitor",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "MoMo — your personal morning dashboard: weather, focus, briefing, system and more",
   "main": "server.js",
   "scripts": {

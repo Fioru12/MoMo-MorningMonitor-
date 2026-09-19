@@ -8,6 +8,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3100
+      - HOST=0.0.0.0
+      # - TERMINAL_PIN=123456  # fissa il PIN del Web Terminal (altrimenti cambia ad ogni riavvio)
     volumes:
       - ./data:/app/data
     healthcheck:

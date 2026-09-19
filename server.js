@@ -14,6 +14,9 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3100;
+// Di default risponde solo al tuo PC. Imposta HOST=0.0.0.0 per renderlo
+// raggiungibile da altri dispositivi in rete locale (già fatto per Docker).
+const HOST = process.env.HOST || '127.0.0.1';
 
 // Initialize Database & Data Directory
 const dataDir = path.join(__dirname, 'data');
@@ -68,9 +71,12 @@ app.get('*', (req, res) => {
 });
 
 // Start Server
-server.listen(PORT, () => {
-  console.log(`✨ MoMo avviato su porta ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`✨ MoMo avviato su porta ${PORT} (${HOST})`);
   console.log(`🌐 Apri http://localhost:${PORT} nel browser`);
+  if (HOST === '0.0.0.0') {
+    console.log('⚠️  MoMo è raggiungibile da altri dispositivi sulla tua rete locale.');
+  }
 });
 
 module.exports = server;

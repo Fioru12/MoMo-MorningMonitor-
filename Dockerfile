@@ -25,6 +25,10 @@ RUN mkdir -p /app/data && chown -R node:node /app
 
 USER node
 
+# Dentro al container deve ascoltare su tutte le interfacce, altrimenti
+# il port mapping di Docker (-p) non riesce a raggiungerlo.
+ENV HOST=0.0.0.0
+
 EXPOSE 3100
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
