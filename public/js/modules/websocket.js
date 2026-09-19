@@ -31,3 +31,7 @@ export function initWebSocket(onSystemUpdate) {
 
   setTimeout(connect, 500);
 }
+
+export function isWebSocketOpen() {
+  return !!ws && ws.readyState === WebSocket.OPEN;
+}

@@ -493,3 +493,110 @@
   opacity: 0.9;
 }
 
+
+/* ==================== RIPRISTINATO: override scoped mancanti (header clock/weather in miniatura) ==================== */
+/* ==================== HEADER TOP ==================== */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-date {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.header-clock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  transition: all var(--transition);
+}
+
+.header-clock:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.clock-select {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all var(--transition);
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+
+.clock-select:hover {
+  color: var(--text-primary);
+  background: rgba(var(--accent-rgb, 0, 113, 227), 0.05);
+}
+
+.clock-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.header-clock .clock-time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.header-clock .clock-date {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.header-weather {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  transition: all var(--transition);
+  cursor: default;
+}
+
+.header-weather:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.weather-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.header-weather .weather-temp {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
