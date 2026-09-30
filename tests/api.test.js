@@ -215,6 +215,36 @@ async function runTests() {
     failed++;
   }
 
+  // Test 10: Settings API (salva, rilegge, rifiuta chiavi sconosciute, cancella)
+  try {
+    const before = (await request('/api/settings')).data['momo-theme'];
+    const put = await request('/api/settings/momo-theme', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: 'light' },
+    });
+    const got = await request('/api/settings');
+    const bad = await request('/api/settings/evil-key', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: 'x' },
+    });
+    await request('/api/settings/momo-theme', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: null },
+    });
+    const after = await request('/api/settings');
+    if (before !== undefined) {
+      await request('/api/settings/momo-theme', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: before },
+      });
+    }
+    if (put.status === 200 && got.data['momo-theme'] === 'light' && bad.status === 400 && !('momo-theme' in after.data)) {
+      console.log('✅ Settings API - Save, read, reject unknown keys, delete');
+      passed++;
+    } else {
+      throw new Error('Unexpected settings behaviour');
+    }
+  } catch (err) {
+    console.log('❌ Settings API -', err.message);
+    failed++;
+  }
+
   console.log(`\n📊 Test Results: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);

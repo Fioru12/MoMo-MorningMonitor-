@@ -183,6 +183,7 @@ MoMo-MorningMonitor-/
 | `GET/POST/DELETE /api/bookmarks` | Bookmarks |
 | `GET/POST/DELETE /api/snippets` | CLI snippets salvati |
 | `POST /api/snippets/exec` | Esegue un comando shell (Web Terminal) — **richiede `pin` nel body** |
+| `GET /api/settings`, `PUT /api/settings/:key` | Preferenze UI (tema, colore, sfondo, profilo, layout, focus) salvate nel DB e condivise tra browser |
 | `GET /api/calendar` | Calendario mensile |
 | `GET /api/network` | Interfacce di rete |
 | `GET /api/storage` | Dischi e spazio disponibile |

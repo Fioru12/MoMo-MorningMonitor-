@@ -75,6 +75,13 @@ async function initDB() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+
   await migrateFromJSON();
   await seedDefaultSnippets();
 }
@@ -262,6 +269,18 @@ const dbService = {
   async deleteSnippet(id) {
     const res = await run('DELETE FROM snippets WHERE id = ?', [id]);
     return res.changes > 0;
+  },
+
+  // Settings (preferenze UI sincronizzate tra browser)
+  async getSettings() {
+    const rows = await all('SELECT key, value FROM settings');
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  },
+  async setSetting(key, value) {
+    await run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, value]);
+  },
+  async deleteSetting(key) {
+    await run('DELETE FROM settings WHERE key = ?', [key]);
   },
 };
 

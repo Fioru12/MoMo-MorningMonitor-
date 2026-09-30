@@ -1,3 +1,4 @@
+import { initSettingsSync } from './modules/settingsSync.js';
 import { initTheme } from './modules/theme.js';
 import { initWebSocket, isWebSocketOpen } from './modules/websocket.js';
 import { initNotificationButton } from './modules/notifications.js';
@@ -25,7 +26,9 @@ import { initWallpaper } from './modules/wallpaper.js';
 import { initCommandPalette } from './modules/commandPalette.js';
 import { initKeyboardShortcuts } from './modules/keyboardShortcuts.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSettingsSync();
+
   // Tema, Accent Color, Landing, Service Worker, Particle Canvas
   initTheme();
 

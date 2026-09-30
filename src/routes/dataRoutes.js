@@ -144,4 +144,35 @@ router.delete('/snippets/:id', async (req, res) => {
   }
 });
 
+// --- Settings ---
+const SETTING_KEYS = new Set([
+  'momo-accent', 'momo-theme', 'momo-wallpaper', 'momo-profile',
+  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro',
+]);
+
+router.get('/settings', async (req, res) => {
+  try {
+    res.json(await dbService.getSettings());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/settings/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+    if (!SETTING_KEYS.has(key)) return res.status(400).json({ error: 'Chiave non valida' });
+    if (value === null) {
+      await dbService.deleteSetting(key);
+      return res.json({ ok: true });
+    }
+    if (typeof value !== 'string' || value.length > 20000) return res.status(400).json({ error: 'Valore non valido' });
+    await dbService.setSetting(key, value);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
