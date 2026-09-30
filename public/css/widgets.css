@@ -197,11 +197,7 @@
 }
 
 .widget-header h2 {
-  font-size: 0.9rem;
-  font-weight: 600;
   flex: 1;
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
 }
 
 .widget-timestamp {
@@ -753,31 +749,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
   transform: scale(0.95);
 }
 
-.color-popup {
-  position: fixed;
-  top: 72px;
-  right: 24px;
-  background: var(--bg-card);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-hover);
-  z-index: 100;
-  min-width: 240px;
-  opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-  pointer-events: none;
-  transition: all var(--spring);
-}
-
-.color-popup.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
 .color-popup-header {
   display: flex;
   justify-content: space-between;
@@ -1261,13 +1232,7 @@ body[data-wall="city"]::after { opacity: 0.06; }
   filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.3));
 }
 
-
 /* Fix Bookmark form - was broken */
-.bookmarks-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 .bookmarks-form .bookmarks-input {
   width: 100%;
 }
@@ -1555,7 +1520,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
   transform: translateX(6px);
   background: rgba(var(--accent-rgb, 0, 113, 227), 0.05);
 }
-
 
 .news-content {
   flex: 1;
@@ -2242,7 +2206,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
   gap: 10px;
 }
 
-
 /* ==================== WIDGET: MARKETS (reuses crypto styles) ==================== */
 .market-item {
   display: grid;
@@ -2324,7 +2287,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
   text-align: center;
   white-space: nowrap;
 }
-
 
 .market-change.positive {
   color: var(--success);
@@ -2418,7 +2380,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
 }
 
 /* ==================== LIVE DOT ==================== */
-
 
 /* ==================== SKELETON LOADING ==================== */
 .skeleton {
@@ -2735,7 +2696,6 @@ body[data-wall="city"]::after { opacity: 0.06; }
   background: rgba(var(--accent-rgb, 0, 113, 227), 0.1);
   color: var(--accent);
 }
-
 
 /* ==================== RIPRISTINATO: regole/varianti mancanti individuate con diff automatico ==================== */
 [data-theme="light"] .header,
