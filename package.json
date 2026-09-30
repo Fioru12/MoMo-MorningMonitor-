@@ -7,7 +7,9 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node tests/api.test.js",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "autostart:install": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/autostart.ps1 install",
+    "autostart:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/autostart.ps1 uninstall"
   },
   "keywords": [
     "dashboard",

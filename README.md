@@ -108,7 +108,14 @@ npm install
 npm start
 ```
 
-Apri [http://localhost:3100](http://localhost:3100) nel browser. Su Windows puoi anche usare `start-momo.bat` per avviare il server con un doppio click.
+Apri [http://localhost:3100](http://localhost:3100) nel browser. Su Windows puoi anche usare `start-momo.bat`: avvia il server in background (se non è già attivo) e apre MoMo in una finestra dedicata di Chrome/Edge.
+
+### Avvio automatico all'accesso (Windows)
+```bash
+npm run autostart:install     # MoMo si apre da solo ogni volta che accedi a Windows
+npm run autostart:uninstall   # per toglierlo
+```
+Il log del server finisce in `logs/momo.log`.
 
 ---
 
@@ -199,8 +206,10 @@ MoMo-MorningMonitor-/
 ## 🧪 Testing
 
 ```bash
-npm test
+npm test           # test delle API
+npm run test:e2e   # test nel browser con Playwright (la prima volta: npx playwright install chromium)
 ```
+Entrambi usano un database temporaneo e non toccano i tuoi dati. La CI su GitHub li esegue a ogni push.
 
 ---
 

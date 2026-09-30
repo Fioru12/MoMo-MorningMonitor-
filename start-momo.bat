@@ -1,5 +1,3 @@
 @echo off
-title MoMo - Morning Monitor
 cd /d "%~dp0"
-start "" http://localhost:3100
-npm run dev
+powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0scripts\momo-start.ps1"
