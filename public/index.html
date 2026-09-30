@@ -78,26 +78,28 @@
           </div>
           <span class="header-divider" aria-hidden="true"></span>
           <div class="header-icon-group">
-            <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
+            <div class="color-picker-wrapper" style="position: relative;">
+              <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
+              <div class="color-popup" id="colorPopup" role="dialog" aria-label="Selettore colore accent" aria-hidden="true">
+                <div class="color-popup-header"><span>Colore accent</span><button class="color-popup-close" id="colorPopupClose">✕</button></div>
+                <div class="color-options" id="colorOptions" role="radiogroup">
+                  <button class="color-opt active" data-color="#0071e3" style="background:#0071e3" aria-label="Blu"></button>
+                  <button class="color-opt" data-color="#6c63ff" style="background:#6c63ff" aria-label="Viola"></button>
+                  <button class="color-opt" data-color="#ff8a00" style="background:#ff8a00" aria-label="Arancio"></button>
+                  <button class="color-opt" data-color="#06b6d4" style="background:#06b6d4" aria-label="Ciano"></button>
+                  <button class="color-opt" data-color="#10b981" style="background:#10b981" aria-label="Verde"></button>
+                  <button class="color-opt" data-color="#f59e0b" style="background:#f59e0b" aria-label="Ambra"></button>
+                  <button class="color-opt" data-color="#ef4444" style="background:#ef4444" aria-label="Rosso"></button>
+                  <button class="color-opt" data-color="#ec4899" style="background:#ec4899" aria-label="Rosa"></button>
+                </div>
+              </div>
+            </div>
             <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
             <button class="grid-edit-btn" id="notificationToggle" title="Attiva notifiche (🔔)" aria-label="Attiva notifiche">🔔</button>
             <button class="grid-edit-btn" id="financeViewBtn" title="Mercati (F)" aria-label="Mercati (F)">📊</button>
             <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget" aria-label="Gestisci widget">👁️</button>
             <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)" aria-label="Modifica griglia (G)">◧</button>
           </div>
-        </div>
-      </div>
-      <div class="color-popup" id="colorPopup" role="dialog" aria-label="Selettore colore accent" aria-hidden="true">
-        <div class="color-popup-header"><span>Colore accent</span><button class="color-popup-close" id="colorPopupClose">✕</button></div>
-        <div class="color-options" id="colorOptions" role="radiogroup">
-          <button class="color-opt active" data-color="#0071e3" style="background:#0071e3" aria-label="Blu"></button>
-          <button class="color-opt" data-color="#6c63ff" style="background:#6c63ff" aria-label="Viola"></button>
-          <button class="color-opt" data-color="#ff8a00" style="background:#ff8a00" aria-label="Arancio"></button>
-          <button class="color-opt" data-color="#06b6d4" style="background:#06b6d4" aria-label="Ciano"></button>
-          <button class="color-opt" data-color="#10b981" style="background:#10b981" aria-label="Verde"></button>
-          <button class="color-opt" data-color="#f59e0b" style="background:#f59e0b" aria-label="Ambra"></button>
-          <button class="color-opt" data-color="#ef4444" style="background:#ef4444" aria-label="Rosso"></button>
-          <button class="color-opt" data-color="#ec4899" style="background:#ec4899" aria-label="Rosa"></button>
         </div>
       </div>
       <div class="news-ticker" id="newsTicker"><span class="ticker-label">🔥 LIVE</span><div class="ticker-track" id="tickerTrack"><span class="ticker-text">Caricamento notizie...</span></div></div>

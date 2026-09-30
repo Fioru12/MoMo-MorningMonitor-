@@ -411,26 +411,6 @@
   user-select: none;
 }
 .greeting-focus-check:hover { opacity: 1; }
-.greeting-summary {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.greeting-summary-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  padding: 4px 10px;
-}
-.greeting-summary-item .gs-icon { font-size: 0.85rem; }
-.greeting-summary-item .gs-value { color: var(--text-primary); font-weight: 700; }
 .hourly-row {
   display: flex;
   gap: 6px;
