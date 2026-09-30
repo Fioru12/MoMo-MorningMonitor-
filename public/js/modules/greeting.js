@@ -97,25 +97,11 @@ export function initMomoGreeting() {
   }
   renderGreetingFocus();
 
-  const summaryEl = document.getElementById('greetingSummary');
   fetch('/api/briefing')
     .then((r) => r.json())
     .then((d) => {
       const el = document.getElementById('briefingBullets');
       if (el && d.bullets) el.innerHTML = d.bullets.map((b) => `<div class="briefing-bullet">${escapeHtml(b)}</div>`).join('');
-      if (summaryEl && d.news) {
-        const pomData = JSON.parse(localStorage.getItem('momo-pomodoro') || '{}');
-        const today = new Date().toISOString().slice(0, 10);
-        const pomCount = pomData.date === today ? pomData.count || 0 : 0;
-        summaryEl.innerHTML = [
-          d.weather ? `<span class="greeting-summary-item"><span class="gs-icon">🌤️</span><span class="gs-value">${d.weather.temp}°C</span></span>` : '',
-          d.pending != null ? `<span class="greeting-summary-item"><span class="gs-icon">✅</span><span class="gs-value">${d.pending} todo</span></span>` : '',
-          d.news && d.news.length ? `<span class="greeting-summary-item"><span class="gs-icon">📰</span><span class="gs-value">${d.news.length} news</span></span>` : '',
-          `<span class="greeting-summary-item"><span class="gs-icon">🍅</span><span class="gs-value">${pomCount} pomodoro</span></span>`,
-        ]
-          .filter(Boolean)
-          .join('');
-      }
     })
     .catch(() => {});
 

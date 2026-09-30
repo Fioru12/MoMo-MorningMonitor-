@@ -70,19 +70,15 @@ body .bg-orb {
 [data-theme="light"] body::after { opacity: 0.015; }
 [data-theme="light"] .bg-orb { opacity: 0.25 !important; }
 
-#particleCanvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.3;
-}
-
-[data-theme="dark"] #particleCanvas {
-  opacity: 0.4;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ticker-text { animation: none !important; padding-left: 0; }
+  .ticker-track { overflow-x: auto; }
 }
 
 .container {

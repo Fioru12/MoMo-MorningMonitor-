@@ -1381,10 +1381,11 @@ body[data-wall="city"]::after { opacity: 0.06; }
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
+  padding-left: 100%;
 }
 
 @keyframes ticker-scroll {
-  0% { transform: translateX(100%); }
+  0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
 
