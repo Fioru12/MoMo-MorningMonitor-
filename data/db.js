@@ -7,7 +7,7 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'devmonitor.sqlite');
+const dbPath = process.env.MOMO_DB_PATH || path.join(dataDir, 'devmonitor.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 function run(sql, params = []) {

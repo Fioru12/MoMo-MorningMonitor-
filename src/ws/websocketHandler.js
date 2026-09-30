@@ -4,26 +4,10 @@ const { getSystemMetrics } = require('../services/systemService');
 function setupWebSocket(server) {
   const wss = new WebSocketServer({ server });
   const clients = new Set();
-  let shutdownTimer = null;
 
   wss.on('connection', (ws) => {
     clients.add(ws);
-    if (shutdownTimer) {
-      clearTimeout(shutdownTimer);
-      shutdownTimer = null;
-    }
-
-    ws.on('close', () => {
-      clients.delete(ws);
-      if (clients.size === 0) {
-        shutdownTimer = setTimeout(() => {
-          if (clients.size === 0) {
-            console.log('Tutte le finestre chiuse. Spegnimento server MoMo...');
-            process.exit(0);
-          }
-        }, 2000);
-      }
-    });
+    ws.on('close', () => clients.delete(ws));
 
     // Immediate update on connect
     getSystemMetrics().then((data) => {

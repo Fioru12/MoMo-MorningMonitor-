@@ -51,6 +51,7 @@ async function runTests() {
   // Start temporary server for testing
   process.env.PORT = PORT;
   process.env.TERMINAL_PIN = '000000'; // PIN fisso e noto, solo per i test
+  process.env.MOMO_DB_PATH = path.join(require('os').tmpdir(), `momo-test-${process.pid}.sqlite`);
   // Clear require cache for server if needed or start it
   const serverModule = require('../server.js');
 
