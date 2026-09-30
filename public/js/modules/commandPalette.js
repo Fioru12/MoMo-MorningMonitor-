@@ -1,3 +1,4 @@
+import { escapeHtml } from '../state.js';
 import { loadWeather } from './widgets/weatherWidget.js';
 import { loadSystem } from './widgets/systemWidget.js';
 import { loadTodos } from './widgets/todosWidget.js';
@@ -52,7 +53,7 @@ export function initCommandPalette() {
       ]
         .filter((i) => i.text.toLowerCase().includes(query))
         .slice(0, 5);
-      dyn.innerHTML = items.map((i) => `<div class="cmd-palette-item" style="color:var(--text-secondary)">${i.label}</div>`).join('');
+      dyn.innerHTML = items.map((i) => `<div class="cmd-palette-item" style="color:var(--text-secondary)">${escapeHtml(i.label)}</div>`).join('');
     });
   }
 
