@@ -65,21 +65,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // Connessione WebSocket per il monitoraggio in tempo reale
   initWebSocket((systemData) => updateSystemWidget(systemData));
 
-  // Refresh periodici
-  setInterval(loadWeather, 60000);
-  setInterval(() => {
+  // Refresh periodici: in pausa quando la scheda è nascosta, recuperati al ritorno se scaduti
+  const tasks = [];
+  const every = (fn, ms) => {
+    const task = { fn, ms, last: Date.now() };
+    tasks.push(task);
+    setInterval(() => {
+      if (document.hidden) return;
+      task.last = Date.now();
+      fn();
+    }, ms);
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    const now = Date.now();
+    tasks.forEach((t) => {
+      if (now - t.last >= t.ms) {
+        t.last = now;
+        t.fn();
+      }
+    });
+  });
+
+  every(loadWeather, 60000);
+  every(() => {
     if (!isWebSocketOpen()) loadSystem();
   }, 5000);
-  setInterval(loadNews, 120000);
-  setInterval(loadNotes, 30000);
-  setInterval(loadBookmarks, 30000);
-  setInterval(loadCalendar, 60000);
-  setInterval(loadNetwork, 5000);
-  setInterval(loadStorage, 30000);
-  setInterval(loadServices, 10000);
-  setInterval(loadGitHub, 300000);
-  setInterval(loadCryptoMarkets, 120000);
-  setInterval(loadMarkets, 120000);
-  setInterval(loadEtf, 120000);
-  setInterval(updateHeaderWeather, 300000);
+  every(loadNews, 120000);
+  every(loadNotes, 30000);
+  every(loadBookmarks, 30000);
+  every(loadCalendar, 60000);
+  every(loadNetwork, 5000);
+  every(loadStorage, 30000);
+  every(loadServices, 10000);
+  every(loadGitHub, 300000);
+  every(loadCryptoMarkets, 120000);
+  every(loadMarkets, 120000);
+  every(loadEtf, 120000);
+  every(updateHeaderWeather, 300000);
 });
