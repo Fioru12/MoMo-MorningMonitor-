@@ -5,7 +5,7 @@
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&style=flat-square)
 ![Express](https://img.shields.io/badge/Express-4.21-000?logo=express&style=flat-square)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)
 ![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square)
 ![WebSocket](https://img.shields.io/badge/WebSocket-real--time-4FC08D?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=flat-square)
