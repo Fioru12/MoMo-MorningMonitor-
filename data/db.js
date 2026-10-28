@@ -84,6 +84,19 @@ async function initDB() {
 
   await migrateFromJSON();
   await seedDefaultSnippets();
+  await dailyBackup().catch((e) => console.error('Backup DB fallito:', e.message));
+}
+
+const BACKUP_KEEP = 7;
+
+// Una copia al giorno (VACUUM INTO è coerente anche a database in uso), ultime 7 conservate.
+async function dailyBackup() {
+  const dir = path.join(path.dirname(dbPath), 'backups');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `momo-${new Date().toISOString().slice(0, 10)}.sqlite`);
+  if (!fs.existsSync(file)) await run('VACUUM INTO ?', [file]);
+  const old = fs.readdirSync(dir).filter((f) => /^momo-\d{4}-\d{2}-\d{2}\.sqlite$/.test(f)).sort().slice(0, -BACKUP_KEEP);
+  for (const f of old) fs.unlinkSync(path.join(dir, f));
 }
 
 async function migrateFromJSON() {

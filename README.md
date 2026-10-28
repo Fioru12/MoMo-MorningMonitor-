@@ -51,6 +51,7 @@ Meteo, focus del giorno, briefing, sistema e tanto altro in un'unica dashboard p
 - Profili rapidi (Mattina / Lavoro / Sera) per adattare la vista al momento della giornata
 - Selettore colore accent, tema chiaro/scuro e oltre 25 sfondi
 - Backup e ripristino della configurazione (widget, layout, preferenze) in un file locale
+- Backup automatico del database: una copia al giorno in `data/backups/`, ultime 7 conservate
 - Installabile come PWA, con supporto offline via service worker
 
 ### 🛡️ Sicurezza & affidabilità

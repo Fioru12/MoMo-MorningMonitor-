@@ -246,6 +246,21 @@ async function runTests() {
     failed++;
   }
 
+  // Test 11: backup giornaliero del database creato all'avvio
+  try {
+    const dir = path.join(path.dirname(process.env.MOMO_DB_PATH), 'backups');
+    const today = new Date().toISOString().slice(0, 10);
+    if (fs.existsSync(path.join(dir, `momo-${today}.sqlite`))) {
+      console.log('✅ Backup - Daily database backup created');
+      passed++;
+    } else {
+      throw new Error('Backup file not found in ' + dir);
+    }
+  } catch (err) {
+    console.log('❌ Backup -', err.message);
+    failed++;
+  }
+
   console.log(`\n📊 Test Results: ${passed} passed, ${failed} failed.`);
 
   process.exit(failed > 0 ? 1 : 0);
