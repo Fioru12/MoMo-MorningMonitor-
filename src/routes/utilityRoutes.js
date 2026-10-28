@@ -208,7 +208,15 @@ function pinMatches(candidate) {
   return crypto.timingSafeEqual(a, b);
 }
 
-router.post('/snippets/exec', (req, res) => {
+// Anti brute-force sul PIN: conta solo i tentativi falliti (i comandi riusciti non consumano il limite).
+const execLimiter = require('express-rate-limit')({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  message: { error: 'Troppi tentativi con PIN errato, riprova tra 15 minuti' },
+});
+
+router.post('/snippets/exec', execLimiter, (req, res) => {
   const { command, pin } = req.body;
 
   if (!pinMatches(pin)) {

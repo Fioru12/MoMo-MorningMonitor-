@@ -12,6 +12,7 @@
   margin-bottom: 36px;
   transition: all var(--transition);
   position: relative;
+  z-index: 20;
   overflow: visible;
 }
 

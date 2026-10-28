@@ -66,7 +66,25 @@ export function initTheme() {
     return `${r}, ${g}, ${b}`;
   }
 
+  function getSolarAccent() {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 9) return { color: '#f59e0b', rgb: '245, 158, 11' }; // Alba dorata
+    if (hour >= 9 && hour < 18) return { color: '#0071e3', rgb: '0, 113, 227' }; // Giorno chiaro
+    if (hour >= 18 && hour < 21) return { color: '#8b5cf6', rgb: '139, 92, 246' }; // Crepuscolo violetto
+    return { color: '#38bdf8', rgb: '56, 189, 248' }; // Notte OLED
+  }
+
   function setAccentColor(color) {
+    if (color === 'solar') {
+      const solar = getSolarAccent();
+      document.documentElement.style.setProperty('--accent', solar.color);
+      document.documentElement.style.setProperty('--accent-rgb', solar.rgb);
+      localStorage.setItem('momo-accent', 'solar');
+      colorOptions.forEach((opt) => {
+        opt.classList.toggle('active', opt.dataset.color === 'solar');
+      });
+      return;
+    }
     const rgb = getAccentRGB(color);
     document.documentElement.style.setProperty('--accent', color);
     document.documentElement.style.setProperty('--accent-rgb', rgb);
@@ -79,6 +97,9 @@ export function initTheme() {
 
   const savedColor = localStorage.getItem('momo-accent') || '#0071e3';
   setAccentColor(savedColor);
+  setInterval(() => {
+    if (localStorage.getItem('momo-accent') === 'solar') setAccentColor('solar');
+  }, 5 * 60 * 1000);
 
   if (colorPickerBtn && colorPopup) {
     colorPickerBtn.addEventListener('click', (e) => {

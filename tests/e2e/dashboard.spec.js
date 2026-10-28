@@ -68,3 +68,24 @@ test('scorciatoia G attiva la modalità modifica griglia', async ({ page }) => {
   await page.keyboard.press('g');
   await expect(page.locator('#momoGrid')).toHaveClass(/grid-editing/);
 });
+
+test('il colore "Ciclo Solare" si applica e viene ricordato', async ({ page }) => {
+  await openDashboard(page);
+  await page.click('#colorPickerBtn');
+  await expect(page.locator('#colorPopup')).toHaveClass(/visible/);
+  // L'header si assesta quando arrivano meteo e orologio: aspetta che il pulsante smetta di muoversi.
+  const solar = page.locator('.color-opt[data-color="solar"]');
+  let last = '';
+  await expect.poll(async () => {
+    const now = JSON.stringify(await solar.boundingBox());
+    const stable = now === last;
+    last = now;
+    return stable;
+  }, { intervals: [400], timeout: 15000 }).toBe(true);
+  await solar.click();
+  const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+  expect(['#f59e0b', '#0071e3', '#8b5cf6', '#38bdf8']).toContain(accent);
+  await page.waitForTimeout(800);
+  await page.reload();
+  await expect(page.locator('.color-opt[data-color="solar"]')).toHaveClass(/active/);
+});

@@ -246,6 +246,31 @@ async function runTests() {
     failed++;
   }
 
+  // Test 12: rate limit — uso normale mai bloccato, PIN errato bloccato dopo 10 tentativi
+  try {
+    let blockedNormal = 0;
+    for (let i = 0; i < 450; i++) {
+      const r = await request('/api/health');
+      if (r.status === 429) blockedNormal++;
+    }
+    let last = 0;
+    for (let i = 0; i < 12; i++) {
+      const r = await request('/api/snippets/exec', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { command: 'echo x', pin: '999999' },
+      });
+      last = r.status;
+    }
+    if (blockedNormal === 0 && last === 429) {
+      console.log('✅ Rate limit - 450 normal requests allowed, wrong PIN locked out after 10 attempts');
+      passed++;
+    } else {
+      throw new Error(`normal blocked=${blockedNormal}, last PIN status=${last}`);
+    }
+  } catch (err) {
+    console.log('❌ Rate limit -', err.message);
+    failed++;
+  }
+
   // Test 11: backup giornaliero del database creato all'avvio
   try {
     const dir = path.join(path.dirname(process.env.MOMO_DB_PATH), 'backups');

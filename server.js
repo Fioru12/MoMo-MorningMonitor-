@@ -36,7 +36,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:', 'http:'],
-        connectSrc: ["'self'", 'https:'],
+        connectSrc: ["'self'", 'https:', 'ws:', 'wss:'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'none'"],
@@ -47,10 +47,12 @@ app.use(
 app.use(compression());
 app.use(express.json());
 
-// Rate Limiting (applied to /api/ endpoints only)
+// Rate Limiting (applied to /api/ endpoints only).
+// Una dashboard aperta fa ~27 richieste/min (~400 ogni 15 min): il limite deve stare ben sopra,
+// altrimenti i widget si bloccano a intervalli. Il PIN del terminale ha un limite più severo a parte.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 3000,
   message: { error: 'Troppe richieste, riprova più tardi' },
 });
 app.use('/api/', limiter);
