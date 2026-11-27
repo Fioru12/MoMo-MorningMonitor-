@@ -110,13 +110,16 @@
   opacity: 0;
   transform: translateY(-8px) scale(0.95);
   pointer-events: none;
-  transition: all var(--spring);
+  visibility: hidden; /* niente Tab sui pulsanti di un popup chiuso */
+  transition: all var(--spring), visibility 0s linear 0.3s;
 }
 
 .color-popup.visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+  visibility: visible;
+  transition: all var(--spring), visibility 0s;
 }
 
 /* --- THEME TOGGLE --- */
@@ -455,3 +458,15 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
+
+/* --- NOTIFICA DEL MATTINO --- */
+.notify-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.notify-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.notify-hint { color: var(--text-tertiary); font-size: 0.72rem; line-height: 1.4; }

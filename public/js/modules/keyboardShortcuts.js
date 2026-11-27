@@ -23,6 +23,21 @@ export function initKeyboardShortcuts() {
     hintTimeout = setTimeout(() => shortcutHint.classList.remove('visible'), 4000);
   }
 
+  // Esc chiude popup e pannelli aperti e riporta il focus sul pulsante che li ha aperti.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const open = document.querySelector('.color-popup.visible');
+    if (open) {
+      open.classList.remove('visible');
+      open.parentElement.querySelector('button')?.focus();
+    }
+    const cal = document.getElementById('calendarSettings');
+    if (cal && !cal.hidden && cal.contains(document.activeElement)) {
+      cal.hidden = true;
+      document.getElementById('calendarSettingsBtn')?.focus();
+    }
+  });
+
   if (!localStorage.getItem('momo-hint-seen')) {
     setTimeout(showShortcutHint, 2000);
     localStorage.setItem('momo-hint-seen', 'true');

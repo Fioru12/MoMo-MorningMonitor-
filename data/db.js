@@ -295,6 +295,46 @@ const dbService = {
   async deleteSetting(key) {
     await run('DELETE FROM settings WHERE key = ?', [key]);
   },
+
+  // Esporta/importa tutto il contenuto: serve per spostare MoMo su un altro PC o ripristinarlo.
+  async exportAll() {
+    const out = { settings: await this.getSettings() };
+    for (const table of Object.keys(BACKUP_TABLES)) out[table] = await all(`SELECT * FROM ${table}`);
+    return out;
+  },
+  async importAll(data, allowedSettings) {
+    await run('BEGIN');
+    try {
+      for (const [table, cols] of Object.entries(BACKUP_TABLES)) {
+        if (!Array.isArray(data[table])) continue;
+        await run(`DELETE FROM ${table}`);
+        for (const row of data[table]) {
+          if (!row || typeof row !== 'object' || !row.id) continue;
+          await run(
+            `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
+            cols.map((c) => (row[c] === undefined ? null : row[c]))
+          );
+        }
+      }
+      if (data.settings && typeof data.settings === 'object') {
+        await run('DELETE FROM settings');
+        for (const [key, value] of Object.entries(data.settings)) {
+          if (allowedSettings.has(key) && typeof value === 'string') await this.setSetting(key, value);
+        }
+      }
+      await run('COMMIT');
+    } catch (err) {
+      await run('ROLLBACK');
+      throw err;
+    }
+  },
+};
+
+const BACKUP_TABLES = {
+  todos: ['id', 'text', 'done', 'createdAt'],
+  notes: ['id', 'text', 'createdAt'],
+  bookmarks: ['id', 'name', 'url', 'createdAt'],
+  snippets: ['id', 'title', 'command', 'category', 'createdAt'],
 };
 
 

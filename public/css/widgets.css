@@ -616,7 +616,8 @@ body[data-wall="desert"]::before,
 body[data-wall="city"]::before {
   background:
     linear-gradient(180deg, rgba(5,7,10,0.35) 0%, rgba(5,7,10,0.75) 100%),
-    var(--wall-image) center/cover no-repeat !important;
+    var(--wall-image) center/cover no-repeat,
+    linear-gradient(180deg, #0f172a 0%, #020617 100%) !important;
   filter: none !important;
   animation: none !important;
 }
@@ -2858,7 +2859,8 @@ body[data-wall="city"]::after { opacity: 0.06; }
   cursor: pointer;
 }
 
-.footer-reset:hover { border-color: var(--accent); color: var(--accent); }
+.footer a.footer-reset { color: var(--text-secondary); text-decoration: none; }
+.footer-reset:hover, .footer a.footer-reset:hover { border-color: var(--accent); color: var(--accent); }
 
 .widget-focus .focus-body {
   display: flex;

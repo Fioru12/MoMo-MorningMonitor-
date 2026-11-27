@@ -80,7 +80,7 @@
           <div class="header-icon-group">
             <div class="color-picker-wrapper" style="position: relative;">
               <button class="color-picker-btn" id="colorPickerBtn" aria-label="Scegli colore" title="Colore accent (C)">🎨</button>
-              <div class="color-popup" id="colorPopup" role="dialog" aria-label="Selettore colore accent" aria-hidden="true">
+              <div class="color-popup" id="colorPopup" role="dialog" aria-label="Selettore colore accent">
                 <div class="color-popup-header"><span>Colore accent</span><button class="color-popup-close" id="colorPopupClose">✕</button></div>
                 <div class="color-options" id="colorOptions" role="radiogroup">
                   <button class="color-opt active" data-color="#0071e3" style="background:#0071e3" aria-label="Blu"></button>
@@ -96,7 +96,16 @@
               </div>
             </div>
             <button class="theme-toggle" id="themeToggle" aria-label="Cambia tema"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
-            <button class="grid-edit-btn" id="notificationToggle" title="Attiva notifiche (🔔)" aria-label="Attiva notifiche">🔔</button>
+            <div class="color-picker-wrapper" style="position: relative;">
+              <button class="grid-edit-btn" id="notificationToggle" title="Attiva notifiche (🔔)" aria-label="Attiva notifiche" aria-haspopup="dialog">🔔</button>
+              <div class="color-popup notify-popup" id="notifyPopup" role="dialog" aria-label="Notifica del mattino">
+                <div class="color-popup-header"><span>Riassunto del mattino</span><button class="color-popup-close" id="notifyPopupClose" aria-label="Chiudi">✕</button></div>
+                <label class="notify-row"><input type="checkbox" id="morningNotifyEnabled"> Ricevi una notifica alle</label>
+                <input type="time" id="morningNotifyTime" class="todo-input" value="08:00">
+                <small class="notify-hint">Meteo, impegni di oggi e todo aperti. Arriva se MoMo è aperto (anche in background).</small>
+                <button class="calendar-btn" id="morningNotifyTest">Invia ora una prova</button>
+              </div>
+            </div>
             <button class="grid-edit-btn" id="financeViewBtn" title="Mercati (F)" aria-label="Mercati (F)">📊</button>
             <button class="grid-edit-btn" id="widgetManagerBtn" title="Gestisci widget" aria-label="Gestisci widget">👁️</button>
             <button class="grid-edit-btn" id="gridEditBtn" title="Modifica griglia (G)" aria-label="Modifica griglia (G)">◧</button>
@@ -301,7 +310,7 @@
     </div>
 
     <footer class="footer" role="contentinfo">
-      <p>MoMo v4.0 &mdash; Morning Monitor &mdash; <span id="footerYear">2026</span> • Trascina i widget con ⋮⋮ • Ridimensiona dagli angoli • <button class="footer-reset" id="resetLayoutBtn">Ripristina layout</button></p>
+      <p>MoMo v4.0 &mdash; Morning Monitor &mdash; <span id="footerYear">2026</span> • Trascina i widget con ⋮⋮ • Ridimensiona dagli angoli • <button class="footer-reset" id="resetLayoutBtn">Ripristina layout</button> <a class="footer-reset" id="exportBackupBtn" href="/api/backup/export" download>Esporta configurazione</a> <button class="footer-reset" id="importBackupBtn">Importa</button><input type="file" id="importBackupInput" accept="application/json,.json" hidden></p>
     </footer>
   </div>
 

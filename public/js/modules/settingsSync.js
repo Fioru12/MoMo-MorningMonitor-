@@ -1,6 +1,6 @@
 const SYNCED_KEYS = new Set([
   'momo-accent', 'momo-theme', 'momo-wallpaper', 'momo-profile',
-  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro',
+  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro', 'momo-morning-notify',
 ]);
 
 const originalSet = Storage.prototype.setItem;

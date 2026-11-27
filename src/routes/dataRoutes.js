@@ -147,7 +147,7 @@ router.delete('/snippets/:id', async (req, res) => {
 // --- Settings ---
 const SETTING_KEYS = new Set([
   'momo-accent', 'momo-theme', 'momo-wallpaper', 'momo-profile',
-  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro', 'momo-calendar-ics',
+  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro', 'momo-morning-notify', 'momo-calendar-ics',
 ]);
 
 router.get('/settings', async (req, res) => {
@@ -169,6 +169,29 @@ router.put('/settings/:key', async (req, res) => {
     }
     if (typeof value !== 'string' || value.length > 20000) return res.status(400).json({ error: 'Valore non valido' });
     await dbService.setSetting(key, value);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Backup configurazione (esporta / importa) ---
+router.get('/backup/export', async (req, res) => {
+  try {
+    const data = await dbService.exportAll();
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Disposition', `attachment; filename="momo-backup-${date}.json"`);
+    res.json({ app: 'momo', version: 1, exportedAt: new Date().toISOString(), ...data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/backup/import', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || data.app !== 'momo') return res.status(400).json({ error: 'Non è un file di backup di MoMo' });
+    await dbService.importAll(data, SETTING_KEYS);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

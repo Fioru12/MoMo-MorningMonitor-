@@ -89,3 +89,23 @@ test('il colore "Ciclo Solare" si applica e viene ricordato', async ({ page }) =
   await page.reload();
   await expect(page.locator('.color-opt[data-color="solar"]')).toHaveClass(/active/);
 });
+
+test('Esc chiude il popup colori e un popup chiuso non riceve il focus', async ({ page }) => {
+  await openDashboard(page);
+  const firstSwatch = page.locator('.color-opt').first();
+  await expect(firstSwatch).toBeHidden();
+  await page.click('#colorPickerBtn');
+  await expect(page.locator('#colorPopup')).toHaveClass(/visible/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#colorPopup')).not.toHaveClass(/visible/);
+  await expect(page.locator('#colorPickerBtn')).toBeFocused();
+});
+
+test('il pulsante Esporta scarica un backup JSON di MoMo', async ({ page }) => {
+  await openDashboard(page);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportBackupBtn')]);
+  expect(download.suggestedFilename()).toMatch(/^momo-backup-\d{4}-\d{2}-\d{2}\.json$/);
+  const body = JSON.parse(require('fs').readFileSync(await download.path(), 'utf8'));
+  expect(body.app).toBe('momo');
+  expect(Array.isArray(body.todos)).toBe(true);
+});

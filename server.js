@@ -45,7 +45,7 @@ app.use(
   })
 );
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Rate Limiting (applied to /api/ endpoints only).
 // Una dashboard aperta fa ~27 richieste/min (~400 ogni 15 min): il limite deve stare ben sopra,

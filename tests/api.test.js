@@ -281,6 +281,31 @@ async function runTests() {
     failed++;
   }
 
+  // Test 14: backup configurazione — esporta, modifica, reimporta e ritrova lo stato originale
+  try {
+    const json = { 'Content-Type': 'application/json' };
+    await request('/api/todos', { method: 'POST', headers: json, body: { text: 'Todo da salvare' } });
+    await request('/api/settings/momo-theme', { method: 'PUT', headers: json, body: { value: 'dark' } });
+    const exp = await request('/api/backup/export');
+    await request('/api/todos', { method: 'POST', headers: json, body: { text: 'Todo dopo il backup' } });
+    await request('/api/settings/momo-theme', { method: 'PUT', headers: json, body: { value: 'light' } });
+    const imp = await request('/api/backup/import', { method: 'POST', headers: json, body: exp.data });
+    const bad = await request('/api/backup/import', { method: 'POST', headers: json, body: { hello: 1 } });
+    const todos = (await request('/api/todos')).data.map((t) => t.text);
+    const theme = (await request('/api/settings')).data['momo-theme'];
+    const ok = exp.headers['content-disposition']?.includes('momo-backup-') && imp.status === 200 && bad.status === 400
+      && todos.includes('Todo da salvare') && !todos.includes('Todo dopo il backup') && theme === 'dark';
+    if (ok) {
+      console.log('✅ Backup API - Export and import restore todos and settings');
+      passed++;
+    } else {
+      throw new Error(`import=${imp.status}, bad=${bad.status}, todos=${todos}, theme=${theme}`);
+    }
+  } catch (err) {
+    console.log('❌ Backup API -', err.message);
+    failed++;
+  }
+
   // Test 12: rate limit — uso normale mai bloccato, PIN errato bloccato dopo 10 tentativi
   try {
     let blockedNormal = 0;

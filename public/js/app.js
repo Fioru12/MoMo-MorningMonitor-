@@ -25,6 +25,7 @@ import { initMomoGreeting } from './modules/greeting.js';
 import { initWallpaper } from './modules/wallpaper.js';
 import { initCommandPalette } from './modules/commandPalette.js';
 import { initKeyboardShortcuts } from './modules/keyboardShortcuts.js';
+import { initBackup } from './modules/backup.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initSettingsSync();
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMomoGreeting();
   initFocusWidget();
   initWallpaper();
+  initBackup();
   initHeaderClock();
 
   // Notifiche Push

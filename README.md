@@ -29,6 +29,7 @@ Meteo, focus del giorno, briefing, sistema e tanto altro in un'unica dashboard p
 - Calendario collegato a Google/Outlook (URL iCal): impegni di oggi, eventi ricorrenti e riga "📅 Oggi" nel briefing
 - Notizie dal mondo (non solo tech) con ticker live a velocità di lettura
 - Notifiche push del browser per promemoria e aggiornamenti
+- Notifica del mattino a un orario scelto (🔔) con meteo, impegni e todo del giorno
 
 ### 🧰 Produttività
 - Todo list con completamento, animazioni e persistenza
@@ -195,6 +196,7 @@ MoMo-MorningMonitor-/
 | `POST /api/snippets/exec` | Esegue un comando shell (Web Terminal) — **richiede `pin` nel body** |
 | `GET /api/settings`, `PUT /api/settings/:key` | Preferenze UI (tema, colore, sfondo, profilo, layout, focus) salvate nel DB e condivise tra browser |
 | `GET /api/calendar/events` | Eventi del mese dal calendario iCal collegato (⚙ nel widget Calendario) |
+| `GET /api/backup/export`, `POST /api/backup/import` | Esporta/importa impostazioni, todo, note, segnalibri e snippet in un file JSON (pulsanti nel footer). Il file contiene anche l'URL privato del calendario: conservalo con cura |
 | `GET /api/calendar` | Calendario mensile |
 | `GET /api/network` | Interfacce di rete |
 | `GET /api/storage` | Dischi e spazio disponibile |
