@@ -95,6 +95,18 @@ export async function executeCommand(command) {
       return;
     }
 
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      loadingLine.remove();
+      const errLine = document.createElement('div');
+      errLine.className = 'term-line term-error';
+      errLine.textContent = '⛔ ' + (data.error || 'Errore ' + response.status);
+      output.appendChild(errLine);
+      playSound('delete');
+      output.scrollTop = output.scrollHeight;
+      return;
+    }
+
     sessionStorage.setItem('momo-terminal-pin', pin);
     const res = await response.json();
 

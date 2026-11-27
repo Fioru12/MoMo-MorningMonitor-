@@ -201,6 +201,16 @@ if (!process.env.TERMINAL_PIN) {
   console.log(`🔒 PIN Web Terminal (non impostato in .env, generato per questa sessione): ${TERMINAL_PIN}`);
 }
 
+// Il terminale esegue comandi reali: di default è attivo solo se MoMo risponde al solo PC locale.
+// Con HOST esposto in rete (es. Docker) va riattivato esplicitamente con TERMINAL_ENABLED=true.
+const LOCAL_HOSTS = ['127.0.0.1', 'localhost', '::1'];
+const TERMINAL_ENABLED = process.env.TERMINAL_ENABLED
+  ? process.env.TERMINAL_ENABLED === 'true'
+  : LOCAL_HOSTS.includes(process.env.HOST || '127.0.0.1');
+if (!TERMINAL_ENABLED) {
+  console.log('🔒 Web Terminal disattivato (MoMo è esposto in rete). Imposta TERMINAL_ENABLED=true per attivarlo.');
+}
+
 function pinMatches(candidate) {
   const a = Buffer.from(String(candidate || ''));
   const b = Buffer.from(TERMINAL_PIN);
@@ -217,6 +227,9 @@ const execLimiter = require('express-rate-limit')({
 });
 
 router.post('/snippets/exec', execLimiter, (req, res) => {
+  if (!TERMINAL_ENABLED) {
+    return res.status(403).json({ error: 'Web Terminal disattivato. Imposta TERMINAL_ENABLED=true per attivarlo.' });
+  }
   const { command, pin } = req.body;
 
   if (!pinMatches(pin)) {

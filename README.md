@@ -128,6 +128,7 @@ Il log del server finisce in `logs/momo.log`.
 | `NODE_ENV` | `production` | Ambiente di esecuzione |
 | `HOST` | `127.0.0.1` | Interfaccia di rete. Lascialo com'è per uso personale; `0.0.0.0` lo rende raggiungibile da altri dispositivi in rete locale (impostato automaticamente dentro Docker) |
 | `TERMINAL_PIN` | generato a caso ad ogni avvio | PIN richiesto per usare il Web Terminal. Fissalo se esponi MoMo oltre al tuo PC |
+| `TERMINAL_ENABLED` | `true` con HOST locale, `false` altrimenti | Attiva o spegne il Web Terminal. Con MoMo esposto in rete è spento finché non lo imposti a `true` |
 
 Copia `.env.example` in `.env` per personalizzare. Non sono richieste API key: meteo, news e mercati usano fonti pubbliche gratuite.
 
