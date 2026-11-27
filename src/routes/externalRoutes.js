@@ -6,6 +6,7 @@ const { getMarketsData } = require('../services/marketsService');
 const { getGithubData } = require('../services/githubService');
 const { getCache, setCache } = require('../services/cacheService');
 const dbService = require('../../data/db');
+const { getCalendarEvents, eventsOnDay } = require('../services/calendarService');
 
 const QUOTES_API = 'https://api.quotable.io/random';
 
@@ -45,11 +46,12 @@ router.get('/briefing', async (req, res) => {
     const cached = getCache('briefing');
     if (cached) return res.json(cached);
 
-    const [weatherRes, newsRes, todos, quoteRes] = await Promise.allSettled([
+    const [weatherRes, newsRes, todos, quoteRes, calRes] = await Promise.allSettled([
       getWeatherData().catch(() => null),
       getWorldNewsData().catch(() => []),
       dbService.getTodos().catch(() => []),
       fetch(QUOTES_API, { signal: AbortSignal.timeout(2000) }).then((r) => r.json()).catch(() => null),
+      getCalendarEvents(),
     ]);
 
     const weather = weatherRes.status === 'fulfilled' ? weatherRes.value : null;
@@ -57,6 +59,7 @@ router.get('/briefing', async (req, res) => {
     const todosList = todos.status === 'fulfilled' ? todos.value : [];
     const quote = quoteRes.status === 'fulfilled' && quoteRes.value ? quoteRes.value : null;
 
+    const todayEvents = calRes.status === 'fulfilled' ? eventsOnDay(calRes.value.events) : [];
     const pending = todosList.filter((t) => !t.done).length;
     const escapeStr = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const bullets = [
@@ -64,6 +67,12 @@ router.get('/briefing', async (req, res) => {
       news.length ? `📰 Top: "${escapeStr(news[0].title.slice(0, 70))}" — ${escapeStr(news[0].source)}` : '📰 Nessuna news',
       pending ? `✅ Hai ${pending} task aperti — focus su "${escapeStr(todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo')}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
     ];
+    if (todayEvents.length) {
+      const first = todayEvents[0];
+      const when = first.allDay ? 'tutto il giorno' : new Date(first.start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      const more = todayEvents.length > 1 ? ` (+${todayEvents.length - 1} altri)` : '';
+      bullets.splice(1, 0, `📅 Oggi: ${when} ${escapeStr(first.title.slice(0, 50))}${more}`);
+    }
 
     const result = {
       bullets,

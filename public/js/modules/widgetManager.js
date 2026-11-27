@@ -22,8 +22,8 @@ const WIDGET_DEFS = [
 ];
 
 const PROFILES = {
-  morning: ['system', 'notes', 'bookmarks', 'snippets', 'calendar', 'network', 'storage', 'services', 'github', 'crypto', 'timer'],
-  work: ['calendar', 'crypto', 'timer'],
+  morning: ['system', 'notes', 'bookmarks', 'snippets', 'network', 'storage', 'services', 'github', 'crypto', 'timer'],
+  work: ['crypto', 'timer'],
   evening: ['services', 'network', 'storage', 'github'],
 };
 

@@ -147,7 +147,7 @@ router.delete('/snippets/:id', async (req, res) => {
 // --- Settings ---
 const SETTING_KEYS = new Set([
   'momo-accent', 'momo-theme', 'momo-wallpaper', 'momo-profile',
-  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro',
+  'momo-hidden-widgets', 'momo-grid-layout-v10', 'momo-focus', 'momo-pomodoro', 'momo-calendar-ics',
 ]);
 
 router.get('/settings', async (req, res) => {

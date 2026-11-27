@@ -1796,7 +1796,7 @@ body[data-wall="city"]::after { opacity: 0.06; }
 .calendar-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .calendar-header {
@@ -1810,7 +1810,7 @@ body[data-wall="city"]::after { opacity: 0.06; }
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 .calendar-day-header {
@@ -1820,11 +1820,11 @@ body[data-wall="city"]::after { opacity: 0.06; }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 4px;
+  padding: 2px;
 }
 
 .calendar-day {
-  aspect-ratio: 1;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1862,6 +1862,67 @@ body[data-wall="city"]::after { opacity: 0.06; }
 .calendar-day.other-month {
   opacity: 0.3;
 }
+.calendar-day[data-day] { cursor: pointer; }
+.calendar-day.selected:not(.today) { box-shadow: inset 0 0 0 2px var(--accent); }
+
+.calendar-events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.calendar-events-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+.calendar-events-empty { font-size: 0.8rem; color: var(--text-tertiary); }
+.calendar-event {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+.calendar-event-time {
+  flex-shrink: 0;
+  min-width: 44px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+.calendar-event-title {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.calendar-settings[hidden] { display: none; }
+.calendar-settings small { color: var(--text-tertiary); font-size: 0.7rem; line-height: 1.4; }
+.calendar-settings-actions { display: flex; gap: 8px; }
+.calendar-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.calendar-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
 
 /* ==================== WIDGET: NETWORK ==================== */
 .network-body {

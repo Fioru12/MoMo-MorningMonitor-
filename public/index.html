@@ -261,10 +261,18 @@
       </div>
 
       <!-- ROW 6: Calendar (4) + Crypto (4) + Timer (4) -->
-      <div class="grid-stack-item" gs-id="calendar" gs-w="4" gs-h="4" gs-x="0" gs-y="22">
+      <div class="grid-stack-item" gs-id="calendar" gs-w="4" gs-h="6" gs-x="0" gs-y="22">
         <div class="grid-stack-item-content widget widget-calendar" id="widgetCalendar">
-          <div class="widget-header"><span class="widget-icon">📅</span><h2>Calendario</h2><span class="drag-handle">⋮⋮</span></div>
-          <div class="widget-body calendar-body" id="calendarBody"><div class="calendar-header" id="calendarHeader"></div><div class="calendar-grid" id="calendarGrid"></div></div>
+          <div class="widget-header"><span class="widget-icon">📅</span><h2>Calendario</h2><span class="drag-handle">⋮⋮</span><button class="widget-refresh" id="calendarSettingsBtn" aria-label="Collega calendario" title="Collega calendario">⚙</button></div>
+          <div class="widget-body calendar-body" id="calendarBody">
+            <form class="calendar-settings" id="calendarSettings" hidden>
+              <label for="calendarIcsInput">URL iCal del tuo calendario</label>
+              <input type="url" class="todo-input" id="calendarIcsInput" placeholder="https://calendar.google.com/…/basic.ics" autocomplete="off">
+              <small>Google: Impostazioni calendario › Indirizzo segreto in formato iCal. Outlook: Condividi › Pubblica › ICS.</small>
+              <div class="calendar-settings-actions"><button type="submit" class="calendar-btn primary">Salva</button><button type="button" class="calendar-btn" id="calendarIcsRemove">Scollega</button></div>
+            </form>
+            <div class="calendar-events" id="calendarEvents"></div><div class="calendar-header" id="calendarHeader"></div><div class="calendar-grid" id="calendarGrid"></div>
+          </div>
         </div>
       </div>
 

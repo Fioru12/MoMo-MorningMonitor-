@@ -3,6 +3,7 @@ const router = express.Router();
 const si = require('systeminformation');
 const { getCache, setCache } = require('../services/cacheService');
 const { formatBytes } = require('../utils/formatters');
+const { getCalendarEvents } = require('../services/calendarService');
 
 // --- Time ---
 router.get('/time', (req, res) => {
@@ -185,6 +186,15 @@ router.get('/calendar', (req, res) => {
     days,
     today: now.getDate(),
   });
+});
+
+// --- Calendar events (iCal) ---
+router.get('/calendar/events', async (req, res) => {
+  try {
+    res.json(await getCalendarEvents());
+  } catch (err) {
+    res.json({ configured: true, events: [], error: "Impossibile leggere il calendario: controlla l'URL iCal" });
+  }
 });
 
 // --- Timer ---

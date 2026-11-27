@@ -246,6 +246,41 @@ async function runTests() {
     failed++;
   }
 
+  // Test 13: calendario iCal (evento di oggi + evento ricorrente settimanale) e riga nel briefing
+  try {
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = new Date();
+    const ymd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0',
+      'BEGIN:VEVENT', 'UID:a@momo', `DTSTART:${ymd}T235000`, `DTEND:${ymd}T235500`, 'SUMMARY:Riunione test', 'END:VEVENT',
+      'BEGIN:VEVENT', 'UID:b@momo', `DTSTART:${ymd}T000500`, 'RRULE:FREQ=WEEKLY', 'SUMMARY:Palestra', 'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+    const icsServer = http.createServer((req, res) => res.end(ics)).listen(3996);
+    await request('/api/settings/momo-calendar-ics', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: 'http://127.0.0.1:3996/cal.ics' },
+    });
+    const cal = (await request('/api/calendar/events')).data;
+    const briefing = (await request('/api/briefing')).data;
+    icsServer.close();
+    await request('/api/settings/momo-calendar-ics', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: { value: null },
+    });
+    const gym = cal.events.filter((e) => e.title === 'Palestra').length;
+    const hasMeeting = cal.events.some((e) => e.title === 'Riunione test');
+    const inBriefing = briefing.bullets.some((b) => b.startsWith('📅 Oggi'));
+    if (cal.configured && hasMeeting && gym >= 2 && inBriefing) {
+      console.log('✅ Calendar API - Reads iCal, expands recurring events, adds today to briefing');
+      passed++;
+    } else {
+      throw new Error(`meeting=${hasMeeting}, gym instances=${gym}, briefing=${inBriefing}`);
+    }
+  } catch (err) {
+    console.log('❌ Calendar API -', err.message);
+    failed++;
+  }
+
   // Test 12: rate limit — uso normale mai bloccato, PIN errato bloccato dopo 10 tentativi
   try {
     let blockedNormal = 0;

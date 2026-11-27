@@ -26,6 +26,7 @@ Meteo, focus del giorno, briefing, sistema e tanto altro in un'unica dashboard p
 - Alba/tramonto e geolocalizzazione automatica
 - Briefing giornaliero con citazione motivazionale e notizie in evidenza
 - Focus del giorno — l'unico obiettivo su cui concentrarsi
+- Calendario collegato a Google/Outlook (URL iCal): impegni di oggi, eventi ricorrenti e riga "📅 Oggi" nel briefing
 - Notizie dal mondo (non solo tech) con ticker live a velocità di lettura
 - Notifiche push del browser per promemoria e aggiornamenti
 
@@ -193,6 +194,7 @@ MoMo-MorningMonitor-/
 | `GET/POST/DELETE /api/snippets` | CLI snippets salvati |
 | `POST /api/snippets/exec` | Esegue un comando shell (Web Terminal) — **richiede `pin` nel body** |
 | `GET /api/settings`, `PUT /api/settings/:key` | Preferenze UI (tema, colore, sfondo, profilo, layout, focus) salvate nel DB e condivise tra browser |
+| `GET /api/calendar/events` | Eventi del mese dal calendario iCal collegato (⚙ nel widget Calendario) |
 | `GET /api/calendar` | Calendario mensile |
 | `GET /api/network` | Interfacce di rete |
 | `GET /api/storage` | Dischi e spazio disponibile |
