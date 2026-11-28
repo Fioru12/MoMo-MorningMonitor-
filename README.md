@@ -32,7 +32,7 @@ Meteo, focus del giorno, briefing, sistema e tanto altro in un'unica dashboard p
 - Notifica del mattino a un orario scelto (🔔) con meteo, impegni e todo del giorno
 
 ### 🧰 Produttività
-- Todo list con completamento, animazioni e persistenza
+- Todo list con scadenza (badge Oggi/Domani/Scaduto), priorità alta (!) e ordinamento automatico; le scadenze compaiono nel calendario e nel briefing
 - Note veloci
 - Bookmarks con link rapidi
 - CLI Snippets — comandi da terminale salvati e pronti all'uso
@@ -189,7 +189,7 @@ MoMo-MorningMonitor-/
 | `GET /api/worldnews` | Notizie dal mondo (Google News) |
 | `GET /api/briefing` | Briefing giornaliero |
 | `GET /api/quote` | Citazione motivazionale |
-| `GET/POST/PUT/DELETE /api/todos` | Gestione todo |
+| `GET/POST/PUT/DELETE /api/todos` | Gestione todo (campi opzionali `dueDate` YYYY-MM-DD e `priority` 0/1) |
 | `GET/POST/DELETE /api/notes` | Note veloci |
 | `GET/POST/DELETE /api/bookmarks` | Bookmarks |
 | `GET/POST/DELETE /api/snippets` | CLI snippets salvati |

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'momo-v8';
+const CACHE_NAME = 'momo-v9';
 const APP_SHELL = [
   '/',
   '/index.html',

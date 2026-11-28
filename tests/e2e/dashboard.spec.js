@@ -109,3 +109,24 @@ test('il pulsante Esporta scarica un backup JSON di MoMo', async ({ page }) => {
   expect(body.app).toBe('momo');
   expect(Array.isArray(body.todos)).toBe(true);
 });
+
+test('todo con priorità e scadenza: badge "Oggi" e compare nel calendario', async ({ page }) => {
+  await openDashboard(page);
+  await page.fill('#todoInput', 'Pagare la bolletta');
+  await page.click('#todoPriorityBtn');
+  await expect(page.locator('#todoPriorityBtn')).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => {
+    const d = new Date();
+    const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const input = document.getElementById('todoDueInput');
+    input.value = v;
+    input.dispatchEvent(new Event('change'));
+  });
+  await expect(page.locator('#todoDueBtn')).toHaveText('Oggi');
+  await page.locator('#todoForm button[type=submit]').click();
+  const item = page.locator('#todoList li', { hasText: 'Pagare la bolletta' });
+  await expect(item).toHaveClass(/priority/);
+  await expect(item.locator('.todo-due')).toHaveText('Oggi');
+  await expect(page.locator('#todoPriorityBtn')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#calendarEvents')).toContainText('Pagare la bolletta');
+});

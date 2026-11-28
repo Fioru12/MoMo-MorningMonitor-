@@ -12,13 +12,17 @@ router.get('/todos', async (req, res) => {
   }
 });
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const validDue = (d) => d === undefined || d === null || (typeof d === 'string' && DATE_RE.test(d));
+
 router.post('/todos', async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, dueDate, priority } = req.body;
     if (!text || typeof text !== 'string' || !text.trim()) {
       return res.status(400).json({ error: 'Testo valido richiesto' });
     }
-    const todo = await dbService.addTodo(text);
+    if (!validDue(dueDate)) return res.status(400).json({ error: 'Scadenza non valida (YYYY-MM-DD)' });
+    const todo = await dbService.addTodo(text, { dueDate: dueDate || null, priority: Boolean(priority) });
     res.status(201).json(todo);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -27,6 +31,7 @@ router.post('/todos', async (req, res) => {
 
 router.put('/todos/:id', async (req, res) => {
   try {
+    if (!validDue(req.body.dueDate)) return res.status(400).json({ error: 'Scadenza non valida (YYYY-MM-DD)' });
     const todo = await dbService.updateTodo(req.params.id, req.body);
     if (!todo) return res.status(404).json({ error: 'Todo non trovato' });
     res.json(todo);

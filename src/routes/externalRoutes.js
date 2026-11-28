@@ -61,11 +61,18 @@ router.get('/briefing', async (req, res) => {
 
     const todayEvents = calRes.status === 'fulfilled' ? eventsOnDay(calRes.value.events) : [];
     const pending = todosList.filter((t) => !t.done).length;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const open = todosList.filter((t) => !t.done);
+    const overdue = open.filter((t) => t.dueDate && t.dueDate < today).length;
+    const dueToday = open.filter((t) => t.dueDate === today).length;
     const escapeStr = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const bullets = [
       weather && !weather.error ? `🌤️ ${escapeStr(weather.city)}: ${weather.temp}°C, ${escapeStr(weather.desc)} — tramonto ${escapeStr(weather.sunset)}` : '🌤️ Meteo non disponibile',
       news.length ? `📰 Top: "${escapeStr(news[0].title.slice(0, 70))}" — ${escapeStr(news[0].source)}` : '📰 Nessuna news',
-      pending ? `✅ Hai ${pending} task aperti — focus su "${escapeStr(todosList.find((t) => !t.done)?.text.slice(0, 40) || 'inizia da uno piccolo')}"` : '✅ Tutto fatto! Aggiungi il focus del giorno',
+      pending
+        ? `✅ ${dueToday || overdue ? `${dueToday} in scadenza oggi${overdue ? `, ${overdue} scaduti` : ''} — ` : `Hai ${pending} task aperti — `}focus su "${escapeStr(open[0]?.text.slice(0, 40) || 'inizia da uno piccolo')}"`
+        : '✅ Tutto fatto! Aggiungi il focus del giorno',
     ];
     if (todayEvents.length) {
       const first = todayEvents[0];

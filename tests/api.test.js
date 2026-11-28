@@ -306,6 +306,40 @@ async function runTests() {
     failed++;
   }
 
+  // Test 15: todo con scadenza e priorità — ordine, validazione e riga nel briefing
+  try {
+    const json = { 'Content-Type': 'application/json' };
+    const pad = (n) => String(n).padStart(2, '0');
+    const d = new Date();
+    const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const existing = (await request('/api/todos')).data;
+    for (const t of existing) await request(`/api/todos/${t.id}`, { method: 'DELETE' });
+    await request('/api/todos', { method: 'POST', headers: json, body: { text: 'Normale' } });
+    await request('/api/todos', { method: 'POST', headers: json, body: { text: 'Scade oggi', dueDate: today } });
+    const urgent = await request('/api/todos', { method: 'POST', headers: json, body: { text: 'Urgente', priority: true } });
+    const bad = await request('/api/todos', { method: 'POST', headers: json, body: { text: 'x', dueDate: 'domani' } });
+    const order = (await request('/api/todos')).data.map((t) => t.text);
+    await request(`/api/todos/${urgent.data.id}`, { method: 'PUT', headers: json, body: { priority: false, dueDate: '2000-01-01' } });
+    const updated = (await request('/api/todos')).data.find((t) => t.id === urgent.data.id);
+    await new Promise((r) => setTimeout(r, 10));
+    require('../src/services/cacheService').setCache('briefing', null, 1);
+    const briefing = (await request('/api/briefing')).data;
+    const line = briefing.bullets.find((b) => b.startsWith('✅')) || '';
+    const ok = urgent.data.priority === 1 && bad.status === 400
+      && order.join('|') === 'Urgente|Scade oggi|Normale'
+      && updated.priority === 0 && updated.dueDate === '2000-01-01'
+      && line.includes('1 in scadenza oggi') && line.includes('1 scaduti');
+    if (ok) {
+      console.log('✅ Todo due dates & priority - Sorting, validation, briefing summary');
+      passed++;
+    } else {
+      throw new Error(`order=${order}, bad=${bad.status}, updated=${JSON.stringify(updated)}, briefing="${line}"`);
+    }
+  } catch (err) {
+    console.log('❌ Todo due dates & priority -', err.message);
+    failed++;
+  }
+
   // Test 12: rate limit — uso normale mai bloccato, PIN errato bloccato dopo 10 tentativi
   try {
     let blockedNormal = 0;

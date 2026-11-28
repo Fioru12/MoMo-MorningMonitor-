@@ -82,6 +82,11 @@ async function initDB() {
     )
   `);
 
+  // Colonne aggiunte dopo la prima versione: scadenza (YYYY-MM-DD) e priorità (1 = alta).
+  const todoCols = (await all('PRAGMA table_info(todos)')).map((c) => c.name);
+  if (!todoCols.includes('dueDate')) await run('ALTER TABLE todos ADD COLUMN dueDate TEXT');
+  if (!todoCols.includes('priority')) await run('ALTER TABLE todos ADD COLUMN priority INTEGER DEFAULT 0');
+
   await migrateFromJSON();
   await seedDefaultSnippets();
   await dailyBackup().catch((e) => console.error('Backup DB fallito:', e.message));
@@ -172,36 +177,53 @@ function generateId() {
 }
 
 // DB Helper methods
+function formatTodo(r) {
+  return { ...r, done: Boolean(r.done), dueDate: r.dueDate || null, priority: r.priority ? 1 : 0 };
+}
+
 const dbService = {
   initDB,
 
   // Todos
+  // Ordine: da fare prima dei completati, poi priorità alta, poi scadenza più vicina (senza scadenza in fondo).
   async getTodos() {
-    const rows = await all('SELECT * FROM todos ORDER BY createdAt DESC');
-    return rows.map((r) => ({ ...r, done: Boolean(r.done) }));
+    const rows = await all(`SELECT * FROM todos
+      ORDER BY done ASC, COALESCE(priority, 0) DESC, dueDate IS NULL, dueDate ASC, createdAt DESC`);
+    return rows.map(formatTodo);
   },
-  async addTodo(text) {
+  async addTodo(text, { dueDate = null, priority = 0 } = {}) {
     const item = {
       id: generateId(),
       text: text.trim(),
       done: 0,
       createdAt: new Date().toISOString(),
+      dueDate,
+      priority: priority ? 1 : 0,
     };
-    await run('INSERT INTO todos (id, text, done, createdAt) VALUES (?, ?, ?, ?)', [
+    await run('INSERT INTO todos (id, text, done, createdAt, dueDate, priority) VALUES (?, ?, ?, ?, ?, ?)', [
       item.id,
       item.text,
       item.done,
       item.createdAt,
+      item.dueDate,
+      item.priority,
     ]);
-    return { ...item, done: false };
+    return formatTodo(item);
   },
   async updateTodo(id, updates) {
     const current = await get('SELECT * FROM todos WHERE id = ?', [id]);
     if (!current) return null;
-    const text = updates.text !== undefined ? updates.text.trim() : current.text;
-    const done = updates.done !== undefined ? (updates.done ? 1 : 0) : current.done;
-    await run('UPDATE todos SET text = ?, done = ? WHERE id = ?', [text, done, id]);
-    return { id, text, done: Boolean(done), createdAt: current.createdAt };
+    const next = {
+      ...current,
+      text: updates.text !== undefined ? updates.text.trim() : current.text,
+      done: updates.done !== undefined ? (updates.done ? 1 : 0) : current.done,
+      dueDate: updates.dueDate !== undefined ? updates.dueDate : current.dueDate,
+      priority: updates.priority !== undefined ? (updates.priority ? 1 : 0) : current.priority,
+    };
+    await run('UPDATE todos SET text = ?, done = ?, dueDate = ?, priority = ? WHERE id = ?', [
+      next.text, next.done, next.dueDate, next.priority, id,
+    ]);
+    return formatTodo(next);
   },
   async deleteTodo(id) {
     const res = await run('DELETE FROM todos WHERE id = ?', [id]);
@@ -331,7 +353,7 @@ const dbService = {
 };
 
 const BACKUP_TABLES = {
-  todos: ['id', 'text', 'done', 'createdAt'],
+  todos: ['id', 'text', 'done', 'createdAt', 'dueDate', 'priority'],
   notes: ['id', 'text', 'createdAt'],
   bookmarks: ['id', 'name', 'url', 'createdAt'],
   snippets: ['id', 'title', 'command', 'category', 'createdAt'],

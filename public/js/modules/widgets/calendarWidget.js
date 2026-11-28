@@ -55,12 +55,16 @@ function eventsOn(day) {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), day);
   const end = new Date(now.getFullYear(), now.getMonth(), day + 1);
+  const iso = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const todos = dueTodos.filter((t) => t.dueDate === iso).map((t) => ({ title: t.text, todo: true, location: '' }));
   return events.filter((e) => {
     const s = new Date(e.start);
     const f = e.end ? new Date(e.end) : s;
     return s < end && (f > start || s >= start);
-  });
+  }).concat(todos);
 }
+
+let dueTodos = [];
 
 let lastInfo = {};
 
@@ -71,11 +75,8 @@ function renderEvents(info = lastInfo) {
   document.querySelectorAll('.calendar-day.selected').forEach((c) => c.classList.remove('selected'));
   if (selectedDay) document.querySelector(`.calendar-day[data-day="${selectedDay}"]`)?.classList.add('selected');
 
-  if (info.error) {
-    box.innerHTML = `<div class="calendar-events-empty">⚠️ ${escapeHtml(info.error)}</div>`;
-    return;
-  }
-  if (info.configured === false) {
+  const warn = info.error ? `<div class="calendar-events-empty">⚠️ ${escapeHtml(info.error)}</div>` : '';
+  if (info.configured === false && !eventsOn(selectedDay || new Date().getDate()).length) {
     box.innerHTML = '<div class="calendar-events-empty">Collega Google o Outlook con ⚙ per vedere i tuoi impegni</div>';
     return;
   }
@@ -84,22 +85,24 @@ function renderEvents(info = lastInfo) {
   const list = eventsOn(day);
   const label = day === today ? 'Oggi' : `${day}/${new Date().getMonth() + 1}`;
   if (!list.length) {
-    box.innerHTML = `<div class="calendar-events-empty">${label}: nessun impegno</div>`;
+    box.innerHTML = warn + `<div class="calendar-events-empty">${label}: nessun impegno</div>`;
     return;
   }
-  box.innerHTML = `<div class="calendar-events-title">${label}</div>` + list.map((e) => {
-    const time = e.allDay ? 'Giorno' : new Date(e.start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    return `<div class="calendar-event"><span class="calendar-event-time">${time}</span><span class="calendar-event-title" title="${escapeHtml(e.location)}">${escapeHtml(e.title)}</span></div>`;
+  box.innerHTML = warn + `<div class="calendar-events-title">${label}</div>` + list.map((e) => {
+    const time = e.todo ? 'Todo' : e.allDay ? 'Giorno' : new Date(e.start).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="calendar-event"><span class="calendar-event-time${e.todo ? ' todo' : ''}">${time}</span><span class="calendar-event-title" title="${escapeHtml(e.location)}">${escapeHtml(e.title)}</span></div>`;
   }).join('');
 }
 
 export async function loadCalendar() {
   try {
-    const [data, cal] = await Promise.all([
+    const [data, cal, todos] = await Promise.all([
       fetchAPI('/api/calendar'),
       fetchAPI('/api/calendar/events').catch(() => ({ configured: false, events: [] })),
+      fetchAPI('/api/todos').catch(() => []),
     ]);
     events = cal.events || [];
+    dueTodos = todos.filter((t) => t.dueDate && !t.done);
     const header = document.getElementById('calendarHeader');
     const grid = document.getElementById('calendarGrid');
     if (!header || !grid) return;

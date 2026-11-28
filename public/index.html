@@ -181,7 +181,7 @@
         <div class="grid-stack-item-content widget widget-todo" id="widgetTodo">
           <div class="widget-header"><span class="widget-icon">✅</span><h2>Todo <span style="font-size:0.75rem; font-weight:500; opacity:0.6; margin-left:6px;" id="todoCount"></span></h2><span class="drag-handle">⋮⋮</span></div>
           <div class="widget-body todo-body" id="todoBody">
-            <form class="todo-form" id="todoForm"><input type="text" class="todo-input" id="todoInput" placeholder="Aggiungi un task..." autocomplete="off" /><button type="submit" class="todo-submit">+</button></form>
+            <form class="todo-form" id="todoForm"><input type="text" class="todo-input" id="todoInput" placeholder="Aggiungi un task..." autocomplete="off" /><button type="button" class="todo-opt" id="todoPriorityBtn" aria-pressed="false" aria-label="Priorità alta" title="Priorità alta">!</button><span class="todo-due-wrap"><button type="button" class="todo-opt" id="todoDueBtn" aria-label="Scadenza" title="Scadenza">📅</button><input type="date" id="todoDueInput" class="todo-due-input" tabindex="-1" aria-hidden="true"></span><button type="submit" class="todo-submit">+</button></form>
             <ul class="todo-list" id="todoList"></ul>
           </div>
         </div>
@@ -310,7 +310,7 @@
     </div>
 
     <footer class="footer" role="contentinfo">
-      <p>MoMo v4.0 &mdash; Morning Monitor &mdash; <span id="footerYear">2026</span> • Trascina i widget con ⋮⋮ • Ridimensiona dagli angoli • <button class="footer-reset" id="resetLayoutBtn">Ripristina layout</button> <a class="footer-reset" id="exportBackupBtn" href="/api/backup/export" download>Esporta configurazione</a> <button class="footer-reset" id="importBackupBtn">Importa</button><input type="file" id="importBackupInput" accept="application/json,.json" hidden></p>
+      <p>MoMo v4.1 &mdash; Morning Monitor &mdash; <span id="footerYear">2026</span> • Trascina i widget con ⋮⋮ • Ridimensiona dagli angoli • <button class="footer-reset" id="resetLayoutBtn">Ripristina layout</button> <a class="footer-reset" id="exportBackupBtn" href="/api/backup/export" download>Esporta configurazione</a> <button class="footer-reset" id="importBackupBtn">Importa</button><input type="file" id="importBackupInput" accept="application/json,.json" hidden></p>
     </footer>
   </div>
 
