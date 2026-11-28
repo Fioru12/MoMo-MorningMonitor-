@@ -621,13 +621,13 @@ body[data-wall="city"]::before {
   filter: none !important;
   animation: none !important;
 }
-body[data-wall="mountains"]::before { --wall-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="ocean-photo"]::before { --wall-image: url('https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="forest-photo"]::before { --wall-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="stars"]::before { --wall-image: url('https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="aurora-photo"]::before { --wall-image: url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="desert"]::before { --wall-image: url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=3840&q=85&auto=format&fit=crop'); }
-body[data-wall="city"]::before { --wall-image: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=3840&q=85&auto=format&fit=crop'); }
+body[data-wall="mountains"]::before { --wall-image: url('/wallpapers/mountains.jpg'); }
+body[data-wall="ocean-photo"]::before { --wall-image: url('/wallpapers/ocean-photo.jpg'); }
+body[data-wall="forest-photo"]::before { --wall-image: url('/wallpapers/forest-photo.jpg'); }
+body[data-wall="stars"]::before { --wall-image: url('/wallpapers/stars.jpg'); }
+body[data-wall="aurora-photo"]::before { --wall-image: url('/wallpapers/aurora-photo.jpg'); }
+body[data-wall="desert"]::before { --wall-image: url('/wallpapers/desert.jpg'); }
+body[data-wall="city"]::before { --wall-image: url('/wallpapers/city.jpg'); }
 body[data-wall="mountains"] .bg-orb,
 body[data-wall="ocean-photo"] .bg-orb,
 body[data-wall="forest-photo"] .bg-orb,
